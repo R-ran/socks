@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { X, ChevronUp } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import CartSidebar from '@/components/CartSidebar';
 
 // 直线分隔组件
 const WaveDivider = ({ topColor, bottomColor }: { topColor: string; bottomColor: string }) => {
@@ -78,7 +79,7 @@ const ImageCompareSlider = () => {
           className="object-cover"
           priority
         />
-        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 md:top-8 md:left-8">
+        <div className="absolute top-2 right-2 sm:top-4 sm:right-4 md:top-8 md:right-8">
           <span className="bg-[#d41872] text-white px-3 py-1 sm:px-4 sm:py-1.5 md:px-6 md:py-2 rounded-full font-bold text-xs sm:text-sm md:text-base">
             Others
           </span>
@@ -97,7 +98,7 @@ const ImageCompareSlider = () => {
           className="object-cover"
           priority
         />
-        <div className="absolute top-2 right-2 sm:top-4 sm:right-4 md:top-8 md:right-8">
+        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 md:top-8 md:left-8">
           <span className="bg-[#d41872] text-white px-3 py-1 sm:px-4 sm:py-1.5 md:px-6 md:py-2 rounded-full font-bold text-xs sm:text-sm md:text-base">
             Us
           </span>
@@ -172,19 +173,20 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, []);
 
-  const products = [
-    { name: 'Sloth', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/3701848222.jpeg' },
-    { name: 'Cat', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/1728312560.jpeg' },
-    { name: 'Highland Cow', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/1408584014.jpeg' },
-    { name: 'Red Panda', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/2037452345.jpeg' },
-    { name: 'Cavalier Dog', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/1945379933.jpeg' },
-    { name: 'Crocodile', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/2773191183.jpeg' },
-    { name: 'Shark', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/1118980242.jpeg' },
+  // 首页展示的产品（仅显示名称和图片）
+  const homeProducts = [
+    { name: 'Sloth', slug: 'sloth-socks', price: '$35.00', image: '/Sloth-Socks3.avif' },
+    { name: 'Cat', slug: 'cat-socks', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/1728312560.jpeg' },
+    { name: 'Highland Cow', slug: 'highland-cow-socks', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/1408584014.jpeg' },
+    { name: 'Red Panda', slug: 'red-panda-socks', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/2037452345.jpeg' },
+    { name: 'Cavalier Dog', slug: 'cavalier-dog-socks', price: '$35.00', image: '/Cavalier-Dog3.avif' },
+    { name: 'Crocodile', slug: 'crocodile-socks', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/2773191183.jpeg' },
+    { name: 'Shark', slug: 'shark-socks', price: '$35.00', image: '/Shark-Socks1.avif' },
   ];
 
   const bundles = [
-    { name: 'Cats and Dogs Bundle', price: '$39.50', image: 'https://ext.same-assets.com/2605587933/1217710582.jpeg' },
-    { name: 'Sharks and Crocs Bundle', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/1734010110.png' },
+    { name: 'Cats and Dogs Bundle', slug: 'cats-and-dogs-bundle', price: '$39.50', image: 'https://ext.same-assets.com/2605587933/2161150651.jpeg' },
+    { name: 'Sharks and Crocs Bundle', slug: 'sharks-and-crocs-bundle', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/446626278.jpeg' },
   ];
 
   const reviews = [
@@ -193,21 +195,24 @@ export default function Home() {
       text: "These socks are the comfiest I've ever owned, and the animal...",
       fullText: "These socks are the comfiest I've ever owned, and the animal design makes me smile every time I put them on.",
       author: 'Jessi E.',
-      location: 'Texas,CA'
+      location: 'Texas,CA',
+      avatar: '/avatars/jessi-e.jpg' // 在这里添加头像路径
     },
     {
       title: 'Perfect Gift',
       text: 'Got a pair for my sister and she absolutely loved them. Supe...',
       fullText: 'Got a pair for my sister and she absolutely loved them. Super soft and the quality is amazing!',
       author: 'Daniel K.',
-      location: 'Londan,UK'
+      location: 'Londan,UK',
+      avatar: '/avatars/daniel-k.jpg' // 在这里添加头像路径
     },
     {
       title: 'My New Chill Socks',
       text: 'I wear them every night when I read on the couch. They feel ...',
       fullText: 'I wear them every night when I read on the couch. They feel so cozy and warm, perfect for relaxing!',
       author: 'Sophie M.',
-      location: 'Seattle'
+      location: 'Seattle',
+      avatar: '/avatars/sophie-m.jpg' // 在这里添加头像路径
     }
   ];
 
@@ -248,21 +253,23 @@ export default function Home() {
             Cozy Toes, Wild Hearts
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {products.map((product, idx) => (
-              <div key={idx} className="bg-[#f5f5f5] rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow">
-                <div className="aspect-square relative">
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                  />
+            {homeProducts.map((product, idx) => (
+              <Link key={idx} href={`/products/${product.slug}`} className="block">
+                <div className="bg-[#f5f5f5] rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer">
+                  <div className="aspect-square relative">
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="p-4 text-center">
+                    <h3 className="text-xl font-bold text-[#543313] mb-2">{product.name}</h3>
+                    <p className="text-lg text-[#543313]">{product.price}</p>
+                  </div>
                 </div>
-                <div className="p-4 text-center">
-                  <h3 className="text-xl font-bold text-[#543313] mb-2">{product.name}</h3>
-                  <p className="text-lg text-[#543313]">{product.price}</p>
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -279,20 +286,22 @@ export default function Home() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto">
             {bundles.map((bundle, idx) => (
-              <div key={idx} className="bg-white rounded-lg overflow-hidden shadow-md border-2 border-[#543313]">
-                <div className="aspect-square relative">
-                  <Image
-                    src={bundle.image}
-                    alt={bundle.name}
-                    fill
-                    className="object-cover"
-                  />
+              <Link key={idx} href={`/products/${bundle.slug}`} className="block">
+                <div className="bg-white rounded-lg overflow-hidden shadow-md border-2 border-[#543313] hover:shadow-xl transition-shadow cursor-pointer">
+                  <div className="aspect-square relative">
+                    <Image
+                      src={bundle.image}
+                      alt={bundle.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="p-6 text-center bg-[#e8e0ca]">
+                    <h3 className="text-xl font-bold text-[#543313] mb-2">{bundle.name}</h3>
+                    <p className="text-lg text-[#543313]">{bundle.price}</p>
+                  </div>
                 </div>
-                <div className="p-6 text-center bg-[#e8e0ca]">
-                  <h3 className="text-xl font-bold text-[#543313] mb-2">{bundle.name}</h3>
-                  <p className="text-lg text-[#543313]">{bundle.price}</p>
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -353,7 +362,19 @@ export default function Home() {
                 <h3 className="text-xl font-bold text-[#543313] mb-3">{review.title}</h3>
                 <p className="text-[#543313] mb-4">{review.text} <span className="underline cursor-pointer" onClick={() => handleReadMore(idx)}>Read more</span></p>
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
+                  <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-gray-300">
+                    {review.avatar ? (
+                      <Image
+                        src={review.avatar}
+                        alt={review.author}
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-300"></div>
+                    )}
+                  </div>
                   <div>
                     <p className="font-bold text-[#543313]">{review.author}</p>
                     <p className="text-sm text-gray-600">{review.location}</p>
@@ -377,8 +398,8 @@ export default function Home() {
             {[
               'https://ext.same-assets.com/2605587933/1829951904.jpeg',
               'https://ext.same-assets.com/2605587933/930353990.png',
-              'https://ext.same-assets.com/2605587933/2161150651.jpeg',
-              'https://ext.same-assets.com/2605587933/446626278.jpeg'
+              '/Sloth-Socks1.avif',
+              '/Cat-Socks2.avif'
             ].map((img, idx) => (
               <div key={idx} className="aspect-square rounded-3xl overflow-hidden border-4 border-[#543313] rotate-3 hover:rotate-0 transition-transform">
                 <Image src={img} alt={`Customer ${idx + 1}`} width={300} height={300} className="w-full h-full object-cover" />
@@ -497,7 +518,19 @@ export default function Home() {
                   
                   {/* 用户信息 */}
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-300 rounded-full flex-shrink-0"></div>
+                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden flex-shrink-0 bg-gray-300">
+                      {reviews[selectedReviewIndex].avatar ? (
+                        <Image
+                          src={reviews[selectedReviewIndex].avatar}
+                          alt={reviews[selectedReviewIndex].author}
+                          width={80}
+                          height={80}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-300"></div>
+                      )}
+                    </div>
                     <div>
                       <p className="text-xl md:text-2xl font-bold text-[#543313]">{reviews[selectedReviewIndex].author}</p>
                       <p className="text-base md:text-lg text-gray-600">{reviews[selectedReviewIndex].location}</p>
@@ -512,6 +545,9 @@ export default function Home() {
 
       {/* 回到顶部按钮 */}
       <ScrollToTopButton />
+
+      {/* 购物车侧边栏 */}
+      <CartSidebar />
     </div>
   );
 }

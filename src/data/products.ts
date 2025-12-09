@@ -66,8 +66,10 @@ export const products: Product[] = [
     price: '$35.00',
     originalPrice: '$70.00',
     images: [
-      'https://ext.same-assets.com/2605587933/1688841840.jpeg',
-      'https://ext.same-assets.com/2605587933/1728312560.jpeg',
+      '/Cat-Socks3.avif',
+      '/Cat-Socks2.avif',
+      '/Cat-Socks1.avif',
+      
     ],
     description: 'Adorable Cat Socks for feline fans! Super soft and cozy with a playful cat design that will make every cat lover smile.',
     features: [

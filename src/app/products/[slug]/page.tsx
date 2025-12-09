@@ -3,6 +3,7 @@
 import { useState, use } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { getProductBySlug, getRelatedProducts, getAllBundleProducts, products } from '@/data/products';
@@ -21,6 +22,7 @@ const availableAnimals = [
 
 export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = use(params);
+  const router = useRouter();
   const product = getProductBySlug(resolvedParams.slug);
   const relatedProducts = getRelatedProducts(resolvedParams.slug);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -46,13 +48,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   const [selectedBundles, setSelectedBundles] = useState<Record<string, string>>({}); // Track selected bundle for each quantity
   const [showChooseDropdown, setShowChooseDropdown] = useState<Record<string, boolean>>({}); // Track if dropdown is shown for each quantity
 
-  // 当选择动物时，更新产品图片
+  // 当选择动物时，跳转到对应产品的详情页
   const handleAnimalChange = (animalSlug: string) => {
-    setSelectedAnimal(animalSlug);
-    const newProduct = getProductBySlug(animalSlug);
-    if (newProduct) {
-      setSelectedImage(0);
-    }
+    router.push(`/products/${animalSlug}`);
   };
 
   // 获取当前选择的动物产品（仅用于非bundle产品）
@@ -236,9 +234,9 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 />
               </div>
 
-              {/* Thumbnail Images */}
+              {/* Thumbnail Images - Show up to 4 images */}
               <div className="grid grid-cols-4 gap-4">
-                {product.images.map((img, idx) => (
+                {product.images.slice(0, 4).map((img, idx) => (
                   <button
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
@@ -277,20 +275,23 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                       </span>
                     </div>
                     <div className="flex gap-2 flex-wrap">
-                      {availableAnimals.map((animal) => (
-                        <button
-                          key={animal.slug}
-                          onClick={() => handleAnimalChange(animal.slug)}
-                          className={`w-14 h-14 rounded-full border-2 flex items-center justify-center text-2xl transition-all ${
-                            selectedAnimal === animal.slug
-                              ? 'border-[#543313] bg-[#add9a0] ring-2 ring-[#543313]'
-                              : 'border-[#543313] bg-white hover:bg-[#add9a0]/30'
-                          }`}
-                          title={animal.name}
-                        >
-                          {animal.icon}
-                        </button>
-                      ))}
+                      {availableAnimals.map((animal) => {
+                        const isCurrentProduct = resolvedParams.slug === animal.slug;
+                        return (
+                          <Link
+                            key={animal.slug}
+                            href={`/products/${animal.slug}`}
+                            className={`w-14 h-14 rounded-full border-2 flex items-center justify-center text-2xl transition-all ${
+                              isCurrentProduct
+                                ? 'border-[#543313] bg-[#add9a0] ring-2 ring-[#543313]'
+                                : 'border-[#543313] bg-white hover:bg-[#add9a0]/30'
+                            }`}
+                            title={animal.name}
+                          >
+                            {animal.icon}
+                          </Link>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

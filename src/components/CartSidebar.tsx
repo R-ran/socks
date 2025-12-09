@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
 import Image from 'next/image';
 import { X } from 'lucide-react';
 
 export default function CartSidebar() {
-  const { items, isCartOpen, closeCart, removeFromCart, updateQuantity, getSubtotal } = useCart();
+  const { items, isCartOpen, closeCart, removeFromCart, updateQuantity, getSubtotal, addFreeStickers, removeFreeStickers, hasFreeStickers, hasOtherItems } = useCart();
   const [showOrderNotes, setShowOrderNotes] = useState(false);
   const [orderNotes, setOrderNotes] = useState('');
 
@@ -28,10 +29,10 @@ export default function CartSidebar() {
             <h2 className="text-3xl md:text-4xl font-bold text-[#543313]">Your Cart</h2>
             <button
               onClick={closeCart}
-              className="w-12 h-12 rounded-full bg-[#d41872] hover:bg-[#b01560] flex items-center justify-center transition-colors"
+              className="w-12 h-12 rounded-full bg-[#d41872] hover:bg-[#b01560] border-2 border-black flex items-center justify-center transition-colors"
               aria-label="Close cart"
             >
-              <X className="w-6 h-6 text-white" />
+              <X className="w-6 h-6 text-white stroke-2" strokeWidth={2} />
             </button>
           </div>
         </div>
@@ -39,18 +40,12 @@ export default function CartSidebar() {
         {/* Cart Items */}
         <div className="p-6 space-y-6">
           {items.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-xl text-[#543313] mb-4">Your cart is empty</p>
-              <button
-                onClick={closeCart}
-                className="bg-[#d41872] hover:bg-[#b01560] text-white px-6 py-3 rounded-full font-bold transition-colors"
-              >
-                Continue Shopping
-              </button>
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <p className="text-3xl md:text-4xl font-bold text-[#543313]">No Items Added Yet</p>
             </div>
           ) : (
             <>
-              {items.map((item) => (
+              {items.filter(item => !item.isFreeStickers).map((item) => (
                 <div
                   key={item.id}
                   className="bg-white border-4 border-[#543313] rounded-2xl p-4"
@@ -135,38 +130,117 @@ export default function CartSidebar() {
               ))}
 
               {/* Free Items - Stickers */}
-              <div className="bg-white border-4 border-[#543313] rounded-2xl p-4">
-                <div className="flex gap-4">
-                  <div className="w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden border-2 border-[#543313] flex-shrink-0 bg-[#add9a0] flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-4xl mb-1">🎨</div>
-                      <p className="text-xs font-bold text-[#543313]">ANIMAL<br/>SOCKS</p>
+              {hasFreeStickers() && (
+                items.filter(item => item.isFreeStickers).map((stickerItem) => {
+                  // First sticker is free, subsequent stickers cost $5 each
+                  // Display price: $0.00 if quantity is 1, $5.00 if quantity > 1
+                  const displayPrice = stickerItem.quantity === 1 ? 0 : stickerItem.price;
+                  return (
+                    <div key={stickerItem.id} className="bg-white border-4 border-[#543313] rounded-2xl p-4">
+                      <div className="flex gap-4 items-start">
+                        <div className="w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden border-2 border-[#543313] flex-shrink-0 bg-[#add9a0] flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="text-4xl mb-1">🎨</div>
+                            <p className="text-xs font-bold text-[#543313]">ANIMAL<br/>SOCKS</p>
+                          </div>
+                        </div>
+
+                        <div className="flex-1">
+                          <h3 className="text-lg md:text-xl font-bold text-[#543313] mb-1">
+                            Cute Stickers
+                          </h3>
+                          <p className="text-[#543313] mb-2">1 PAIR (-$5.00)</p>
+
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-gray-500 line-through text-sm">$5.00</span>
+                            <span className="text-lg font-bold text-[#543313]">
+                              {displayPrice === 0 ? '$0.00' : `$${displayPrice.toFixed(2)}`}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-[#543313]">🏷️</span>
+                            <span className="text-sm font-semibold text-[#543313]">Free Gift</span>
+                          </div>
+
+                          {/* Quantity Control */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 border-2 border-[#543313] rounded-full px-4 py-2 bg-white">
+                              <button
+                                onClick={() => updateQuantity(stickerItem.id, stickerItem.quantity - 1)}
+                                className="text-[#543313] font-bold text-xl hover:text-[#d41872] transition-colors"
+                              >
+                                −
+                              </button>
+                              <span className="text-[#543313] font-bold min-w-[30px] text-center">
+                                {stickerItem.quantity}
+                              </span>
+                              <button
+                                onClick={() => updateQuantity(stickerItem.id, stickerItem.quantity + 1)}
+                                className="text-[#543313] font-bold text-xl hover:text-[#d41872] transition-colors"
+                              >
+                                +
+                              </button>
+                            </div>
+
+                            <button
+                              onClick={() => removeFreeStickers()}
+                              className="text-[#543313] underline hover:text-[#d41872] transition-colors font-semibold"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  );
+                })
+              )}
 
-                  <div className="flex-1">
-                    <h3 className="text-lg md:text-xl font-bold text-[#543313] mb-1">
-                      Cute Stickers
-                    </h3>
-                    <p className="text-[#543313] mb-2">Default Title</p>
-
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-gray-500 line-through text-sm">$5.00</span>
-                      <span className="text-lg font-bold text-[#543313]">$0.00</span>
+              {/* Add Free Stickers */}
+              {!hasFreeStickers() && (
+                <div className="bg-white border-4 border-[#543313] rounded-2xl p-4">
+                  <div className="flex gap-4 items-start">
+                    <div className="w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden border-2 border-[#543313] flex-shrink-0 bg-[#add9a0] flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-4xl mb-1">🎨</div>
+                        <p className="text-xs font-bold text-[#543313]">ANIMAL<br/>SOCKS</p>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#543313]">🏷️</span>
-                      <span className="text-sm font-semibold text-[#543313]">Free Gift</span>
+                    <div className="flex-1">
+                      <h3 className="text-lg md:text-xl font-bold text-[#543313] mb-1">
+                        Cute Stickers
+                      </h3>
+                      <p className="text-[#543313] mb-2">1 PAIR (-$5.00)</p>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-gray-500 line-through text-sm">$5.00</span>
+                        <span className="text-lg font-bold text-[#543313]">$0.00</span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[#543313]">🏷️</span>
+                        <span className="text-sm font-semibold text-[#543313]">Free Gift</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 border-2 border-[#543313] rounded-full px-4 py-2 bg-white">
+                          <button
+                            onClick={addFreeStickers}
+                            className="text-[#543313] font-bold text-xl hover:text-[#d41872] transition-colors"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <button
+                          onClick={addFreeStickers}
+                          className="text-[#543313] underline hover:text-[#d41872] transition-colors font-semibold"
+                        >
+                          Add
+                        </button>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500 line-through mb-1">$5.00</p>
-                    <p className="text-xl font-bold text-[#543313]">$0.00</p>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Order Notes */}
               <div className="border-t-2 border-[#543313] pt-4">
@@ -193,25 +267,40 @@ export default function CartSidebar() {
               </div>
 
               {/* Subtotal */}
-              <div className="border-t-2 border-[#543313] pt-6">
+              <div>
                 <div className="text-center mb-4">
                   <p className="text-3xl md:text-4xl font-bold text-[#543313] mb-2">
                     Subtotal: ${getSubtotal().toFixed(2)} USD
                   </p>
-                  <p className="text-sm text-[#543313]">
+                  <p className="text-lg text-[#543313]">
                     Taxes included. Discounts and{' '}
-                    <span className="underline cursor-pointer">shipping</span> calculated at checkout.
+                    <Link 
+                      href="/policies/shipping-policy" 
+                      onClick={closeCart}
+                      className="underline cursor-pointer text-lg hover:text-[#d41872] transition-colors"
+                    >
+                      shipping
+                    </Link>{' '}
+                    calculated at checkout.
                   </p>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="grid grid-cols-2 gap-4">
-                  <button className="bg-[#c9b8d4] hover:bg-[#b9a8c4] border-2 border-[#543313] text-[#543313] py-4 rounded-full font-bold text-lg transition-colors">
+                  <Link
+                    href="/cart"
+                    onClick={closeCart}
+                    className="bg-[#c9b8d4] hover:bg-[#b9a8c4] border-2 border-[#543313] text-[#543313] py-4 rounded-full font-bold text-lg transition-colors text-center"
+                  >
                     View cart
-                  </button>
-                  <button className="bg-[#d41872] hover:bg-[#b01560] border-2 border-[#543313] text-white py-4 rounded-full font-bold text-lg transition-colors">
+                  </Link>
+                  <Link
+                    href="/checkouts"
+                    onClick={closeCart}
+                    className="bg-[#d41872] hover:bg-[#b01560] border-2 border-[#543313] text-white py-4 rounded-full font-bold text-lg transition-colors text-center"
+                  >
                     Check out
-                  </button>
+                  </Link>
                 </div>
               </div>
             </>
