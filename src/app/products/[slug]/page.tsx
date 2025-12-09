@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
@@ -19,19 +19,20 @@ const availableAnimals = [
   { slug: 'shark-socks', name: 'Shark', icon: '🦈' },
 ];
 
-export default function ProductPage({ params }: { params: { slug: string } }) {
-  const product = getProductBySlug(params.slug);
-  const relatedProducts = getRelatedProducts(params.slug);
+export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = use(params);
+  const product = getProductBySlug(resolvedParams.slug);
+  const relatedProducts = getRelatedProducts(resolvedParams.slug);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedAnimal, setSelectedAnimal] = useState(params.slug);
+  const [selectedAnimal, setSelectedAnimal] = useState(resolvedParams.slug);
   const [selectedOffer, setSelectedOffer] = useState('buy1-get1');
-  const [selectedAnimalFor1Pair, setSelectedAnimalFor1Pair] = useState(params.slug);
-  const [selectedAnimalForBuy1First, setSelectedAnimalForBuy1First] = useState(params.slug);
-  const [selectedAnimalForBuy1Second, setSelectedAnimalForBuy1Second] = useState(params.slug);
-  const [selectedAnimalForBuy2First, setSelectedAnimalForBuy2First] = useState(params.slug);
-  const [selectedAnimalForBuy2Second, setSelectedAnimalForBuy2Second] = useState(params.slug);
-  const [selectedAnimalForBuy2Third, setSelectedAnimalForBuy2Third] = useState(params.slug);
-  const [selectedAnimalForBuy2Fourth, setSelectedAnimalForBuy2Fourth] = useState(params.slug);
+  const [selectedAnimalFor1Pair, setSelectedAnimalFor1Pair] = useState(resolvedParams.slug);
+  const [selectedAnimalForBuy1First, setSelectedAnimalForBuy1First] = useState(resolvedParams.slug);
+  const [selectedAnimalForBuy1Second, setSelectedAnimalForBuy1Second] = useState(resolvedParams.slug);
+  const [selectedAnimalForBuy2First, setSelectedAnimalForBuy2First] = useState(resolvedParams.slug);
+  const [selectedAnimalForBuy2Second, setSelectedAnimalForBuy2Second] = useState(resolvedParams.slug);
+  const [selectedAnimalForBuy2Third, setSelectedAnimalForBuy2Third] = useState(resolvedParams.slug);
+  const [selectedAnimalForBuy2Fourth, setSelectedAnimalForBuy2Fourth] = useState(resolvedParams.slug);
   const { addToCart } = useCart();
   const [descriptionOpen, setDescriptionOpen] = useState(false);
   const [returnsOpen, setReturnsOpen] = useState(false);
@@ -75,7 +76,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
       const bundleQty = selectedBundleQuantity === '1' ? 1 : 2;
       
       cartItem = {
-        id: `bundle-${params.slug}-${selectedBundleQuantity}-${Date.now()}`,
+        id: `bundle-${resolvedParams.slug}-${selectedBundleQuantity}-${Date.now()}`,
         name: product.name,
         animal: product.name,
         image: product.images[0],
