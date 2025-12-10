@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { X } from 'lucide-react';
 
 export default function CartSidebar() {
-  const { items, isCartOpen, closeCart, removeFromCart, updateQuantity, getSubtotal, addFreeStickers, removeFreeStickers, hasFreeStickers, hasOtherItems } = useCart();
+  const { items, isCartOpen, closeCart, removeFromCart, updateQuantity, getSubtotal, addFreeStickers, removeFreeStickers, hasFreeStickers, hasOtherItems, userRemovedStickers } = useCart();
   const [showOrderNotes, setShowOrderNotes] = useState(false);
   const [orderNotes, setOrderNotes] = useState('');
 
@@ -132,9 +132,18 @@ export default function CartSidebar() {
               {/* Free Items - Stickers */}
               {hasFreeStickers() && (
                 items.filter(item => item.isFreeStickers).map((stickerItem) => {
-                  // First sticker is free, subsequent stickers cost $5 each
-                  // Display price: $0.00 if quantity is 1, $5.00 if quantity > 1
-                  const displayPrice = stickerItem.quantity === 1 ? 0 : stickerItem.price;
+                  // 计算显示价格
+                  // 如果有其他商品：第一个免费($0.00)，额外的每个$5.00
+                  // 如果没有其他商品：所有贴纸都按$5.00收费
+                  const otherItemsExist = hasOtherItems();
+                  let displayPrice: number;
+                  if (otherItemsExist) {
+                    // 有其他商品时，第一个免费
+                    displayPrice = stickerItem.quantity === 1 ? 0 : stickerItem.price;
+                  } else {
+                    // 没有其他商品时，所有贴纸都收费
+                    displayPrice = stickerItem.price;
+                  }
                   return (
                     <div key={stickerItem.id} className="bg-white border-4 border-[#543313] rounded-2xl p-4">
                       <div className="flex gap-4 items-start">
@@ -191,6 +200,26 @@ export default function CartSidebar() {
                             </button>
                           </div>
                         </div>
+
+                        {/* Total Price */}
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500 line-through mb-1">
+                            ${(stickerItem.originalPrice * stickerItem.quantity).toFixed(2)}
+                          </p>
+                          <p className="text-xl font-bold text-[#543313]">
+                            {(() => {
+                              let totalPrice: number;
+                              if (otherItemsExist) {
+                                // 有其他商品时，第一个免费，额外的每个$5
+                                totalPrice = Math.max(0, stickerItem.quantity - 1) * stickerItem.price;
+                              } else {
+                                // 没有其他商品时，所有贴纸都收费
+                                totalPrice = stickerItem.price * stickerItem.quantity;
+                              }
+                              return `$${totalPrice.toFixed(2)}`;
+                            })()}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   );
@@ -198,7 +227,7 @@ export default function CartSidebar() {
               )}
 
               {/* Add Free Stickers */}
-              {!hasFreeStickers() && (
+              {!hasFreeStickers() && !userRemovedStickers() && (
                 <div className="bg-white border-4 border-[#543313] rounded-2xl p-4">
                   <div className="flex gap-4 items-start">
                     <div className="w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden border-2 border-[#543313] flex-shrink-0 bg-[#add9a0] flex items-center justify-center">

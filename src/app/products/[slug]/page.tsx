@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, use, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
-import { ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getProductBySlug, getRelatedProducts, getAllBundleProducts, products } from '@/data/products';
 import { useCart } from '@/contexts/CartContext';
 
@@ -146,14 +146,27 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     }
   };
 
+  // 如果产品不存在，自动重定向到主页
+  useEffect(() => {
+    if (!product || !currentProduct) {
+      const timer = setTimeout(() => {
+        router.push('/');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [product, currentProduct, router]);
+
   if (!product || !currentProduct) {
     return (
       <Layout>
         <div className="min-h-screen bg-[#e8e0ca] flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-4xl font-bold text-[#543313] mb-4">Product Not Found</h1>
-            <Link href="/catalog" className="text-[#d41872] underline">
-              Return to Catalog
+            <p className="text-sm text-[#543313]/70 mb-4">
+              Redirecting to homepage in 2 seconds...
+            </p>
+            <Link href="/" className="text-[#d41872] underline">
+              Go to Homepage
             </Link>
           </div>
         </div>
@@ -179,25 +192,29 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
       title: 'Cozy and Adorable!',
       text: "These socks are the comfiest I've ever owned, and the animal design makes me smile every time I put them on.",
       author: 'Jessi E.',
-      location: 'Texas,CA'
+      location: 'Texas,CA',
+      avatar: '/1.avif' // 头像路径：public/avatars/jessi-e.jpg
     },
     {
       title: 'Perfect Gift',
       text: 'Got a pair for my sister and she absolutely loved them. Super soft and unique – now I want some for myself!',
       author: 'Daniel K.',
-      location: 'London,UK'
+      location: 'London,UK',
+      avatar: '/2.avif' // 头像路径：public/avatars/daniel-k.jpg
     },
     {
       title: 'My New Chill Socks',
       text: 'I wear them every night when I read on the couch. They feel like a warm hug for my feet.',
       author: 'Sophie M.',
-      location: 'Seattle'
+      location: 'Seattle',
+      avatar: '/3.avif' // 头像路径：public/avatars/sophie-m.jpg
     },
     {
       title: 'Best Quality!',
       text: 'The quality exceeded my expectations. These socks are thick, warm, and the animal design is so detailed!',
       author: 'Michael R.',
-      location: 'New York'
+      location: 'New York',
+      avatar: '/4.avif'
     }
   ];
 
@@ -224,7 +241,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             {/* Left - Images */}
             <div className="space-y-4 sticky top-24 self-start">
               {/* Main Image */}
-              <div className="aspect-square rounded-2xl overflow-hidden border-4 border-[#543313]">
+              <div className="relative aspect-square rounded-2xl overflow-hidden border-4 border-[#543313] group">
                 <Image
                   src={product.images[selectedImage]}
                   alt={product.name}
@@ -232,6 +249,36 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                   height={600}
                   className="w-full h-full object-cover"
                 />
+                
+                {/* Left Arrow Button */}
+                {product.images.length > 1 && (
+                  <button
+                    onClick={() => {
+                      setSelectedImage((prev) => 
+                        prev === 0 ? product.images.length - 1 : prev - 1
+                      );
+                    }}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white border-2 border-[#543313] rounded-full p-2 shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="w-6 h-6 text-[#543313]" />
+                  </button>
+                )}
+
+                {/* Right Arrow Button */}
+                {product.images.length > 1 && (
+                  <button
+                    onClick={() => {
+                      setSelectedImage((prev) => 
+                        prev === product.images.length - 1 ? 0 : prev + 1
+                      );
+                    }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white border-2 border-[#543313] rounded-full p-2 shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="w-6 h-6 text-[#543313]" />
+                  </button>
+                )}
               </div>
 
               {/* Thumbnail Images - Show up to 4 images */}
@@ -349,12 +396,16 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="text-xl font-bold text-[#543313]">${option.price.toFixed(2)}</p>
-                              {qty === '1' && (
-                                <p className="text-xs text-gray-600 line-through">$39.50</p>
-                              )}
-                              {qty === '2' && (
-                                <p className="text-xs text-gray-600 line-through">$74.50</p>
+                              {qty === '1' ? (
+                                <>
+                                  <p className="text-xl font-bold text-[#543313]">$39.00</p>
+                                  <p className="text-xs text-gray-600 line-through">$39.50</p>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="text-xl font-bold text-[#543313]">${option.price.toFixed(2)}</p>
+                                  <p className="text-xs text-gray-600 line-through">$74.50</p>
+                                </>
                               )}
                             </div>
                           </div>
@@ -785,9 +836,21 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                     Add to cart
                   </button>
                   <button
-                    className="flex-1 bg-[#a89bb8] hover:bg-[#9688a8] border-2 border-[#543313] text-white py-4 rounded-full font-bold text-xl transition-colors shadow-lg hover:shadow-xl"
+                    onClick={() => {
+                      // 添加商品到购物车并跳转到结算页面，选择 PayPal
+                      handleAddToCart();
+                      router.push('/checkouts?payment=paypal');
+                    }}
+                    className="flex-1 bg-[#FFC439] hover:bg-[#FFB800] border-0 text-[#1a1a1a] py-4 rounded-full font-semibold text-xl transition-colors shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                   >
-                    Buy with Shop
+                    <span className="text-gray-800">Pay with</span>
+                    <Image
+                      src="/paypal1.png"
+                      alt="PayPal"
+                      width={70}
+                      height={18}
+                      className="object-contain"
+                    />
                   </button>
                 </div>
               ) : (
@@ -798,6 +861,55 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                   Add to cart
                 </button>
               )}
+
+              {/* Payment Methods */}
+              <div className="flex gap-1 justify-center items-center mt-2">
+                <div className="w-14 h-7 bg-white rounded border flex items-center justify-center overflow-hidden px-1.5">
+                  <Image
+                    src="/apple.png"
+                    alt="Apple Pay"
+                    width={50}
+                    height={20}
+                    className="object-contain"
+                  />
+                </div>
+                <div className="w-14 h-7 bg-white rounded border flex items-center justify-center overflow-hidden px-1.5">
+                  <Image
+                    src="/paypal.png"
+                    alt="PayPal"
+                    width={50}
+                    height={20}
+                    className="object-contain"
+                  />
+                </div>
+                <div className="w-14 h-7 bg-white rounded border flex items-center justify-center overflow-hidden px-1.5">
+                  <Image
+                    src="/google.png"
+                    alt="Google Pay"
+                    width={50}
+                    height={20}
+                    className="object-contain"
+                  />
+                </div>
+                <div className="w-14 h-7 bg-white rounded border flex items-center justify-center overflow-hidden px-1.5">
+                  <Image
+                    src="/visa.png"
+                    alt="Visa"
+                    width={50}
+                    height={20}
+                    className="object-contain"
+                  />
+                </div>
+                <div className="w-14 h-7 bg-white rounded border flex items-center justify-center overflow-hidden px-1.5">
+                  <Image
+                    src="/yinlian.png"
+                    alt="银联 Pay"
+                    width={50}
+                    height={20}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
 
               {/* Gift Packaging */}
               <div className="rounded-2xl p-4 bg-[#e8e0ca]">
@@ -843,7 +955,67 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
               </div>
 
               {/* Collapsible Sections */}
-              <div className="space-y-3">
+              <div className="space-y-0 mt-6">
+                {/* Description */}
+                <div className="border-t-2 border-[#543313]">
+                  <button
+                    onClick={() => setDescriptionOpen(!descriptionOpen)}
+                    className="w-full flex items-center justify-between py-4 px-0 text-left"
+                  >
+                    <span className="text-xl font-bold text-[#543313]">Description</span>
+                    <span className="text-2xl font-bold text-[#543313]">
+                      {descriptionOpen ? '−' : '+'}
+                    </span>
+                  </button>
+                  {descriptionOpen && (
+                    <div className="pb-4 text-[#543313]">
+                      <p className="text-base leading-relaxed">
+                        {product.description || `These adorable ${product.name} socks feature a unique 3D design that brings your favorite animals to life. Made with premium soft materials, they provide ultimate comfort while adding a fun touch to your outfit. Perfect for lounging at home or making a statement on a casual day out.`}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Easy Returns */}
+                <div className="border-t-2 border-[#543313]">
+                  <button
+                    onClick={() => setReturnsOpen(!returnsOpen)}
+                    className="w-full flex items-center justify-between py-4 px-0 text-left"
+                  >
+                    <span className="text-xl font-bold text-[#543313]">Easy Returns</span>
+                    <span className="text-2xl font-bold text-[#543313]">
+                      {returnsOpen ? '−' : '+'}
+                    </span>
+                  </button>
+                  {returnsOpen && (
+                    <div className="pb-4 text-[#543313]">
+                      <p className="text-base leading-relaxed">
+                        Not completely satisfied with your purchase? No problem! We offer easy returns within 30 days of delivery. Items must be in original condition with tags attached. Simply contact our customer service team to initiate a return, and we'll take care of the rest.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Fast & Secure Shipping */}
+                <div className="border-t-2 border-[#543313]">
+                  <button
+                    onClick={() => setShippingOpen(!shippingOpen)}
+                    className="w-full flex items-center justify-between py-4 px-0 text-left"
+                  >
+                    <span className="text-xl font-bold text-[#543313]">Fast & Secure Shipping</span>
+                    <span className="text-2xl font-bold text-[#543313]">
+                      {shippingOpen ? '−' : '+'}
+                    </span>
+                  </button>
+                  {shippingOpen && (
+                    <div className="pb-4 text-[#543313]">
+                      <p className="text-base leading-relaxed">
+                        We ship worldwide with fast and secure delivery options. Standard shipping typically takes 5-7 business days. Express shipping (2-3 business days) is also available at checkout. All orders are carefully packaged to ensure your items arrive in perfect condition. Tracking information will be provided once your order ships.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="border-t-2 border-[#543313]"></div>
               </div>
             </div>
           </div>
@@ -920,7 +1092,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 <div className="border-4 border-[#543313] rounded-2xl overflow-hidden bg-white hover:shadow-xl transition-shadow">
                   <div className="aspect-square relative">
                     <Image
-                      src="https://ext.same-assets.com/2605587933/3709302975.jpeg"
+                      src="https://ext.same-assets.com/2605587933/2161150651.jpeg"
                       alt="Cats and Dogs Bundle"
                       fill
                       className="object-cover"
@@ -936,7 +1108,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 <div className="border-4 border-[#543313] rounded-2xl overflow-hidden bg-white hover:shadow-xl transition-shadow">
                   <div className="aspect-square relative">
                     <Image
-                      src="https://ext.same-assets.com/2605587933/384229386.jpeg"
+                      src="https://ext.same-assets.com/2605587933/446626278.jpeg"
                       alt="Sharks and Crocs Bundle"
                       fill
                       className="object-cover"
@@ -1142,7 +1314,19 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                         <h3 className="text-xl font-bold text-[#543313] mb-3">{review.title}</h3>
                         <p className="text-[#543313] mb-4">{review.text}</p>
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
+                          {review.avatar ? (
+                            <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                              <Image
+                                src={review.avatar}
+                                alt={review.author}
+                                width={48}
+                                height={48}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-300 rounded-full flex-shrink-0"></div>
+                          )}
                           <div>
                             <p className="font-bold text-[#543313]">{review.author}</p>
                             <p className="text-sm text-gray-600">{review.location}</p>

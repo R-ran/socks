@@ -176,11 +176,11 @@ export default function Home() {
   // 首页展示的产品（仅显示名称和图片）
   const homeProducts = [
     { name: 'Sloth', slug: 'sloth-socks', price: '$35.00', image: '/Sloth-Socks3.avif' },
-    { name: 'Cat', slug: 'cat-socks', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/1728312560.jpeg' },
-    { name: 'Highland Cow', slug: 'highland-cow-socks', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/1408584014.jpeg' },
-    { name: 'Red Panda', slug: 'red-panda-socks', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/2037452345.jpeg' },
+    { name: 'Cat', slug: 'cat-socks', price: '$35.00', image: '/Cat-Socks3.avif' },
+    { name: 'Highland Cow', slug: 'highland-cow-socks', price: '$35.00', image: '/Highland-Cow-Socks1.avif' },
+    { name: 'Red Panda', slug: 'red-panda-socks', price: '$35.00', image: '/Red-Panda-Socks2.avif' },
     { name: 'Cavalier Dog', slug: 'cavalier-dog-socks', price: '$35.00', image: '/Cavalier-Dog3.avif' },
-    { name: 'Crocodile', slug: 'crocodile-socks', price: '$35.00', image: 'https://ext.same-assets.com/2605587933/2773191183.jpeg' },
+    { name: 'Crocodile', slug: 'crocodile-socks', price: '$35.00', image: '/Crocodile-Socks1.avif' },
     { name: 'Shark', slug: 'shark-socks', price: '$35.00', image: '/Shark-Socks1.avif' },
   ];
 
@@ -196,7 +196,7 @@ export default function Home() {
       fullText: "These socks are the comfiest I've ever owned, and the animal design makes me smile every time I put them on.",
       author: 'Jessi E.',
       location: 'Texas,CA',
-      avatar: '/avatars/jessi-e.jpg' // 在这里添加头像路径
+      avatar: '/1.avif' // 在这里添加头像路径
     },
     {
       title: 'Perfect Gift',
@@ -204,7 +204,7 @@ export default function Home() {
       fullText: 'Got a pair for my sister and she absolutely loved them. Super soft and the quality is amazing!',
       author: 'Daniel K.',
       location: 'Londan,UK',
-      avatar: '/avatars/daniel-k.jpg' // 在这里添加头像路径
+      avatar: '/2.avif' // 在这里添加头像路径
     },
     {
       title: 'My New Chill Socks',
@@ -212,7 +212,7 @@ export default function Home() {
       fullText: 'I wear them every night when I read on the couch. They feel so cozy and warm, perfect for relaxing!',
       author: 'Sophie M.',
       location: 'Seattle',
-      avatar: '/avatars/sophie-m.jpg' // 在这里添加头像路径
+      avatar: '/3.avif' // 在这里添加头像路径
     }
   ];
 
@@ -312,13 +312,13 @@ export default function Home() {
 
       {/* Scrolling Text Section */}
       <div className="relative w-full overflow-hidden bg-[#add9a0] py-4">
-        <div className="flex whitespace-nowrap">
+        <div className="flex whitespace-nowrap animate-scroll-container">
           {/* 第一段文字 */}
-          <div className="inline-block animate-scroll text-[#543313] font-semibold text-2xl md:text-3xl lg:text-4xl">
+          <div className="inline-block text-[#543313] font-semibold text-2xl md:text-3xl lg:text-4xl">
             Spread the Love &nbsp; Spread the Love &nbsp; Spread the Love &nbsp; Spread the Love &nbsp; Spread the Love &nbsp; Spread the Love &nbsp; Spread the Love &nbsp; Spread the Love &nbsp;
           </div>
           {/* 第二段文字（无缝循环） */}
-          <div className="inline-block animate-scroll text-[#543313] font-semibold text-2xl md:text-3xl lg:text-4xl" aria-hidden="true">
+          <div className="inline-block text-[#543313] font-semibold text-2xl md:text-3xl lg:text-4xl" aria-hidden="true">
             Spread the Love &nbsp; Spread the Love &nbsp; Spread the Love &nbsp; Spread the Love &nbsp; Spread the Love &nbsp; Spread the Love &nbsp; Spread the Love &nbsp; Spread the Love &nbsp;
           </div>
         </div>

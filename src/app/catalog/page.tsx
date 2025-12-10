@@ -3,53 +3,25 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronDown } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { products } from '@/data/products';
 
 export default function CatalogPage() {
-  const [showInStock, setShowInStock] = useState(false);
-  const [showOutOfStock, setShowOutOfStock] = useState(false);
   const [priceFrom, setPriceFrom] = useState('');
   const [priceTo, setPriceTo] = useState('35.00');
-  const [sortBy, setSortBy] = useState('featured');
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const sortDropdownRef = useRef<HTMLDivElement>(null);
+  const [sortBy] = useState('featured');
 
-  // 点击外部关闭下拉菜单
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
-        setShowSortDropdown(false);
-      }
-    };
-
-    if (showSortDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
+  // 只显示 id 1-9 的产品，并应用价格过滤
+  const filteredProducts = products.filter(product => {
+    // 只保留 id 1 到 9 的产品
+    if (product.id < 1 || product.id > 9) {
+      return false;
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showSortDropdown]);
-
-  // 先应用价格过滤（用于计算库存数量）
-  const priceFilteredProducts = products.filter(product => {
+    // 应用价格过滤
     const price = parseFloat(product.price.replace('$', ''));
     const fromPrice = priceFrom ? parseFloat(priceFrom) : 0;
     const toPrice = priceTo ? parseFloat(priceTo) : 999;
     return price >= fromPrice && price <= toPrice;
-  });
-
-  // 计算基于价格过滤后的库存数量
-  const inStockCount = priceFilteredProducts.filter(p => p.inStock).length;
-  const outOfStockCount = priceFilteredProducts.filter(p => !p.inStock).length;
-
-  // 过滤产品（应用所有过滤条件）
-  const filteredProducts = priceFilteredProducts.filter(product => {
-    if (showInStock && !product.inStock) return false;
-    if (showOutOfStock && product.inStock) return false;
-    return true;
   });
 
   // 排序产品
@@ -76,33 +48,6 @@ export default function CatalogPage() {
             {/* 左侧过滤器 */}
             <div className="lg:col-span-1">
               <div className="bg-white border-2 border-[#543313] rounded-lg p-6 sticky top-24">
-                {/* Availability 过滤 */}
-                <div className="mb-6">
-                  <h3 className="text-2xl font-bold text-[#543313] mb-4">Availability</h3>
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={showInStock}
-                        onChange={(e) => setShowInStock(e.target.checked)}
-                        className="w-6 h-6 rounded border-2 border-[#543313] text-[#d41872] focus:ring-[#d41872]"
-                      />
-                      <span className="text-[#543313] text-lg">In stock [{inStockCount}]</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={showOutOfStock}
-                        onChange={(e) => setShowOutOfStock(e.target.checked)}
-                        className="w-6 h-6 rounded border-2 border-[#543313] text-[#d41872] focus:ring-[#d41872]"
-                      />
-                      <span className="text-[#543313] text-lg">Out of stock [{outOfStockCount}]</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="border-t-2 border-[#543313] my-6"></div>
-
                 {/* Price 过滤 */}
                 <div>
                   <h3 className="text-2xl font-bold text-[#543313] mb-4">Price</h3>
@@ -144,56 +89,9 @@ export default function CatalogPage() {
 
             {/* 右侧产品网格 */}
             <div className="lg:col-span-2">
-              {/* 顶部排序和产品数量 */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+              {/* 产品数量 */}
+              <div className="mb-8">
                 <p className="text-[#543313] font-semibold text-lg">{sortedProducts.length} Products</p>
-                <div className="w-full sm:w-auto relative" ref={sortDropdownRef}>
-                  <button
-                    onClick={() => setShowSortDropdown(!showSortDropdown)}
-                    className="w-full sm:w-64 px-4 py-3 rounded-lg border-2 border-[#543313] bg-[#add9a0] text-[#543313] font-bold focus:outline-none focus:ring-2 focus:ring-[#543313] cursor-pointer flex items-center justify-between"
-                  >
-                    <span>
-                      {sortBy === 'featured' && 'Featured'}
-                      {sortBy === 'best-selling' && 'Best selling'}
-                      {sortBy === 'alphabetically-a-z' && 'Alphabetically, A-Z'}
-                      {sortBy === 'alphabetically-z-a' && 'Alphabetically, Z-A'}
-                      {sortBy === 'price-low-high' && 'Price, low to high'}
-                      {sortBy === 'price-high-low' && 'Price, high to low'}
-                      {sortBy === 'date-old-new' && 'Date, old to new'}
-                      {sortBy === 'date-new-old' && 'Date, new to old'}
-                    </span>
-                    <ChevronDown className={`w-5 h-5 transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
-                  </button>
-                  {showSortDropdown && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-[#543313] rounded-lg overflow-hidden z-10 shadow-lg">
-                      {[
-                        { value: 'featured', label: 'Featured' },
-                        { value: 'best-selling', label: 'Best selling' },
-                        { value: 'alphabetically-a-z', label: 'Alphabetically, A-Z' },
-                        { value: 'alphabetically-z-a', label: 'Alphabetically, Z-A' },
-                        { value: 'price-low-high', label: 'Price, low to high' },
-                        { value: 'price-high-low', label: 'Price, high to low' },
-                        { value: 'date-old-new', label: 'Date, old to new' },
-                        { value: 'date-new-old', label: 'Date, new to old' },
-                      ].map((option) => (
-                        <button
-                          key={option.value}
-                          onClick={() => {
-                            setSortBy(option.value);
-                            setShowSortDropdown(false);
-                          }}
-                          className={`w-full px-4 py-3 text-left border-b-2 border-[#543313] last:border-b-0 font-bold text-[#543313] transition-colors ${
-                            sortBy === option.value
-                              ? 'bg-[#e8e0ca]'
-                              : 'bg-[#add9a0] hover:bg-[#9ac98c]'
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
 
               {/* 产品网格 */}
@@ -215,13 +113,6 @@ export default function CatalogPage() {
                         {product.comingSoon && (
                           <div className="absolute top-4 left-4 bg-[#543313] text-white px-4 py-2 rounded-full font-bold text-sm">
                             Coming soon
-                          </div>
-                        )}
-                        {!product.inStock && !product.comingSoon && (
-                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                            <span className="bg-[#543313] text-white px-6 py-3 rounded-full font-bold">
-                              Out of Stock
-                            </span>
                           </div>
                         )}
                       </div>

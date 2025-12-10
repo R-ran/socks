@@ -25,8 +25,9 @@ export const products: Product[] = [
     originalPrice: '$70.00',
     images: [
       'https://ext.same-assets.com/2605587933/1629102377.jpeg',
-      'https://ext.same-assets.com/2605587933/1525787751.jpeg',
       'https://ext.same-assets.com/2605587933/3325107424.png',
+      '/Sloth-Socks1.avif',
+      'https://ext.same-assets.com/2605587933/1525787751.jpeg',
     ],
     description: 'Step into something wild! Our Animal Socks are cozy, cute, and full of charm, like a hug from your favorite animal! Soft, breathable, and made to make you smile.\n\nWarning: May cause uncontrollable smiling and spontaneous animal noises!',
     features: [
@@ -45,9 +46,10 @@ export const products: Product[] = [
     price: '$35.00',
     originalPrice: '$70.00',
     images: [
-      'https://ext.same-assets.com/2605587933/3162870928.jpeg',
-      'https://ext.same-assets.com/2605587933/149980745.jpeg',
+      
+      '/Highland-Cow-Socks1.avif',
       'https://ext.same-assets.com/2605587933/1408584014.jpeg',
+      '/Highland-Cow-Socks2.avif',
     ],
     description: 'Adorable Highland Cow Socks – the perfect gift for animal lovers! Cozy, warm, and featuring the cutest fluffy Highland Cow design. These socks bring smiles and warmth wherever you go.',
     features: [
@@ -88,8 +90,9 @@ export const products: Product[] = [
     price: '$35.00',
     originalPrice: '$70.00',
     images: [
+      '/Red-Panda-Socks2.avif',
       'https://ext.same-assets.com/2605587933/1637805690.jpeg',
-      'https://ext.same-assets.com/2605587933/2037452345.jpeg',
+      '/Red-Panda-Socks1.avif',
     ],
     description: 'Cute Red Panda Socks – perfect for nature lovers! Soft, cozy, and featuring an adorable red panda design.',
     features: [
@@ -108,8 +111,10 @@ export const products: Product[] = [
     price: '$35.00',
     originalPrice: '$70.00',
     images: [
-      'https://ext.same-assets.com/2605587933/1257722685.jpeg',
-      'https://ext.same-assets.com/2605587933/1945379933.jpeg',
+      '/Cavalier-Dog3.avif',
+      '/Cavalier-Dog2.avif',
+      '/Cavalier-Dog1.avif',
+      
     ],
     description: 'Cavalier King Charles Spaniel Socks – for dog lovers! Sweet, cozy, and featuring the cutest puppy design.',
     features: [
@@ -119,7 +124,7 @@ export const products: Product[] = [
       'Easy Returns',
       'Giving Back'
     ],
-    inStock: false
+    inStock: true
   },
   {
     id: 6,
@@ -128,8 +133,8 @@ export const products: Product[] = [
     price: '$35.00',
     originalPrice: '$70.00',
     images: [
-      'https://ext.same-assets.com/2605587933/3054780508.jpeg',
-      'https://ext.same-assets.com/2605587933/2773191183.jpeg',
+      '/Crocodile-Socks1.avif',
+      
     ],
     description: 'Wild Crocodile Socks – for adventure lovers! Fun, cozy, and featuring a playful croc design.',
     features: [
@@ -148,8 +153,8 @@ export const products: Product[] = [
     price: '$35.00',
     originalPrice: '$70.00',
     images: [
-      'https://ext.same-assets.com/2605587933/4242980010.jpeg',
-      'https://ext.same-assets.com/2605587933/1118980242.jpeg',
+      '/Shark-Socks1.avif',
+      
     ],
     description: 'Cool Shark Socks – for ocean lovers! Soft, fun, and featuring an awesome shark design.',
     features: [
@@ -159,7 +164,7 @@ export const products: Product[] = [
       'Easy Returns',
       'Giving Back'
     ],
-    inStock: false
+    inStock: true
   },
   {
     id: 8,
@@ -168,8 +173,9 @@ export const products: Product[] = [
     price: '$35.00',
     originalPrice: '$70.00',
     images: [
-      'https://ext.same-assets.com/2605587933/1739106022.png',
-      'https://ext.same-assets.com/2605587933/1183566063.jpeg',
+  
+      '/Capybara-Socks1.avif',
+
     ],
     description: 'Chill Capybara Socks – the most relaxed socks ever! Soft, cozy, and featuring the cutest capybara design.',
     features: [
@@ -184,14 +190,35 @@ export const products: Product[] = [
   },
   {
     id: 9,
+    slug: 'koala-socks',
+    name: 'Koala Socks',
+    price: '$35.00',
+    originalPrice: '$70.00',
+    images: [
+      '/Koala1.avif',
+      
+    ],
+    description: 'Koala Socks – the most relaxed socks ever! Soft, cozy, and featuring the cutest koala design.',
+    features: [
+      'One Size Fits All',
+      'Comfort & Quality',
+      'Fast Shipping',
+      'Easy Returns',
+      'Giving Back'
+    ],
+    inStock: true,
+    comingSoon: false
+  },
+  {
+    id: 10,
     slug: 'cats-and-dogs-bundle',
     name: 'Cats and Dogs Bundle',
     price: '$39.50',
     originalPrice: '$70.00',
     images: [
-      'https://ext.same-assets.com/2605587933/3709302975.jpeg',
-      'https://ext.same-assets.com/2605587933/1217710582.jpeg',
-      'https://ext.same-assets.com/2605587933/1688841840.jpeg',
+      'https://ext.same-assets.com/2605587933/2161150651.jpeg',
+      '/Cat-Socks3.avif',
+      '/Cavalier-Dog3.avif',
       'https://ext.same-assets.com/2605587933/1257722685.jpeg',
     ],
     description: 'The perfect gift bundle for cat and dog lovers! This bundle includes adorable cat and dog themed socks, beautifully packaged and ready to gift. Perfect for Christmas or any special occasion.',
@@ -211,15 +238,15 @@ export const products: Product[] = [
     },
   },
   {
-    id: 10,
+    id: 11,
     slug: 'sharks-and-crocs-bundle',
     name: 'Sharks and Crocs Bundle',
     price: '$35.00',
     originalPrice: '$70.00',
     images: [
-      'https://ext.same-assets.com/2605587933/384229386.jpeg',
+      'https://ext.same-assets.com/2605587933/446626278.jpeg',
       'https://ext.same-assets.com/2605587933/1734010110.png',
-      'https://ext.same-assets.com/2605587933/4242980010.jpeg',
+      '/Shark-Socks1.avif',
       'https://ext.same-assets.com/2605587933/3054780508.jpeg',
     ],
     description: 'Dive into adventure with our Sharks and Crocs Bundle! This exciting bundle features cool shark and crocodile themed socks, perfect for ocean and adventure lovers.',

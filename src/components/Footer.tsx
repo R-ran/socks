@@ -12,13 +12,13 @@ export default function Footer() {
       {/* Footer */}
       <footer className="py-6 md:py-8 px-4 md:px-6 bg-[#e8e0ca]">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-row flex-wrap items-center justify-between gap-4 md:gap-6 mb-4 md:mb-6">
-            <div className="flex-shrink-0">
+          <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4 md:gap-6 mb-4 md:mb-6">
+            <div className="flex-shrink-0 md:justify-self-start">
               <select className="px-4 py-2 rounded-md border-2 border-[#543313] bg-white">
                 <option>USD ($)</option>
               </select>
             </div>
-            <div className="text-center flex-1">
+            <div className="text-center md:justify-self-center">
               <p className="text-sm text-[#543313] mb-2">
                 © 2025, <Link href="/" className="text-[#2d1a0a] hover:opacity-70 underline decoration-2">Animalsox</Link>
               </p>
@@ -31,7 +31,7 @@ export default function Footer() {
                 <Link href="/policies/shipping-policy" className="text-[#543313] underline hover:opacity-70">Shipping policy</Link>
               </div>
             </div>
-            <div className="flex gap-2 flex-wrap justify-end flex-shrink-0">
+            <div className="grid grid-cols-3 gap-2 justify-center md:justify-end flex-shrink-0 md:justify-self-end max-w-fit">
               <div className="w-20 h-10 bg-white rounded border flex items-center justify-center overflow-hidden px-2">
                 <Image
                   src="/apple.png"

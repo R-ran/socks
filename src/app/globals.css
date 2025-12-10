@@ -59,7 +59,7 @@
     padding: 4px;
   }
 
-  @keyframes scroll {
+  @keyframes scroll-right {
     0% {
       transform: translateX(0);
     }
@@ -68,8 +68,8 @@
     }
   }
 
-  .animate-scroll {
-    animation: scroll 20s linear infinite;
-    display: inline-block;
+  .animate-scroll-container {
+    animation: scroll-right 20s linear infinite;
+    width: fit-content;
   }
 }

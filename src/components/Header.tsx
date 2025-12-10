@@ -86,7 +86,9 @@ export default function Header() {
               <Link href="/contact" className="text-[#543313] font-bold hover:opacity-70 text-2xl">Contact</Link>
             </div>
             <div className="flex items-center gap-2 md:gap-3">
-              <User className="w-6 h-6 md:w-7 md:h-7 text-[#775136] cursor-pointer hover:opacity-70" />
+              <Link href="https://accounts.shopify.com/" target="_blank" rel="noopener noreferrer">
+                <User className="w-6 h-6 md:w-7 md:h-7 text-[#775136] cursor-pointer hover:opacity-70" />
+              </Link>
               <div className="relative cursor-pointer hover:opacity-70" onClick={openCart}>
                 <ShoppingCart className="w-6 h-6 md:w-7 md:h-7 text-[#775136]" />
                 <span className="absolute -top-1 -right-1 bg-[#775136] text-white rounded-full w-5 h-5 md:w-6 md:h-6 text-xs md:text-sm flex items-center justify-center font-bold">

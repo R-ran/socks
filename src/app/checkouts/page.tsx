@@ -1,13 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { Lock, Search, HelpCircle } from 'lucide-react';
 import CartSidebar from '@/components/CartSidebar';
+import { loadStripe } from '@stripe/stripe-js';
+import { PayPalScriptProvider } from '@paypal/react-paypal-js';
+import dynamic from 'next/dynamic';
+
+const PayPalButtonWrapper = dynamic(
+  () => import('@/components/PayPalButtonWrapper'),
+  { ssr: false }
+);
+
+// Initialize Stripe - will be loaded when component mounts
+let stripePromise: Promise<any> | null = null;
+const getStripe = () => {
+  if (!stripePromise) {
+    stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+  }
+  return stripePromise;
+};
 
 export default function CheckoutPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { items, getSubtotal, addFreeStickers, removeFreeStickers, hasFreeStickers, hasOtherItems, updateQuantity } = useCart();
   const [email, setEmail] = useState('');
   const [country, setCountry] = useState('Germany');
@@ -18,17 +38,179 @@ export default function CheckoutPage() {
   const [postalCode, setPostalCode] = useState('');
   const [city, setCity] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('credit-card');
+  const [expressPayment, setExpressPayment] = useState<string | null>(null);
+
+  // 从URL参数读取支付方式
+  useEffect(() => {
+    const paymentParam = searchParams?.get('payment');
+    if (paymentParam === 'paypal') {
+      setPaymentMethod('paypal');
+      setExpressPayment('paypal');
+    }
+  }, [searchParams]);
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [securityCode, setSecurityCode] = useState('');
   const [nameOnCard, setNameOnCard] = useState('');
   const [useShippingAsBilling, setUseShippingAsBilling] = useState(true);
   const [rememberMe, setRememberMe] = useState(true);
+  const [rememberFirstName, setRememberFirstName] = useState('');
+  const [rememberPhone, setRememberPhone] = useState('');
   const [discountCode, setDiscountCode] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   const subtotal = getSubtotal();
   const totalSavings = 5.00; // Free stickers discount
   const total = subtotal;
+  
+  // Check if cart is empty
+  const isCartEmpty = items.length === 0;
+
+  // Create payment intent when component mounts or total changes
+  useEffect(() => {
+    if (items.length > 0 && total > 0) {
+      createPaymentIntent();
+    }
+  }, [items, total]);
+
+  const createPaymentIntent = async () => {
+    try {
+      const response = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: total,
+          currency: 'usd',
+          metadata: {
+            items: JSON.stringify(items.map(item => ({
+              id: item.id,
+              name: item.name,
+              quantity: item.quantity,
+              price: item.price,
+            }))),
+          },
+        }),
+      });
+
+      const data = await response.json();
+      if (data.clientSecret) {
+        setClientSecret(data.clientSecret);
+      }
+    } catch (error) {
+      console.error('Error creating payment intent:', error);
+    }
+  };
+
+  const handleStripePayment = async () => {
+    if (!clientSecret) {
+      setPaymentError('Payment system not ready. Please try again.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setPaymentError(null);
+
+    try {
+      const stripe = await getStripe();
+      if (!stripe) {
+        throw new Error('Stripe not loaded');
+      }
+
+      // In a real implementation, you would use Stripe Elements here
+      // For now, we'll simulate the payment flow
+      const response = await fetch('/api/confirm-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentIntentId: clientSecret.split('_secret_')[0],
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.status === 'succeeded') {
+        router.push(`/order-success?amount=${total}`);
+      } else {
+        setPaymentError('Payment failed. Please try again.');
+      }
+    } catch (error: any) {
+      setPaymentError(error.message || 'Payment failed. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePayPalPayment = async (data: any, actions: any) => {
+    try {
+      // 重新计算总价，确保使用最新的值
+      const currentTotal = getSubtotal();
+      
+      // 验证金额是否有效
+      if (!currentTotal || currentTotal <= 0) {
+        const errorMsg = `Invalid order amount: ${currentTotal}. Please ensure your cart has items.`;
+        console.error('PayPal order creation error:', errorMsg);
+        setPaymentError(errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      // 验证购物车是否有商品
+      if (!items || items.length === 0) {
+        const errorMsg = 'Your cart is empty. Please add items before checkout.';
+        console.error('PayPal order creation error:', errorMsg);
+        setPaymentError(errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      const orderAmount = currentTotal.toFixed(2);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Creating PayPal order:', {
+          amount: orderAmount,
+          itemsCount: items.length,
+          items: items.map(item => ({ id: item.id, name: item.name, quantity: item.quantity, price: item.price }))
+        });
+      }
+
+      const order = await actions.order.create({
+        purchase_units: [
+          {
+            amount: {
+              currency_code: 'USD',
+              value: orderAmount,
+            },
+          },
+        ],
+      });
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('PayPal order created successfully:', order);
+      }
+      
+      return order;
+    } catch (error: any) {
+      console.error('PayPal order creation failed:', error);
+      const errorMsg = error.message || 'Failed to create PayPal order. Please try again.';
+      setPaymentError(errorMsg);
+      throw error;
+    }
+  };
+
+  const handlePayPalApprove = async (data: any, actions: any) => {
+    try {
+      const details = await actions.order.capture();
+      router.push(`/order-success?amount=${total}&paymentMethod=paypal`);
+      return details;
+    } catch (error) {
+      setPaymentError('PayPal payment failed. Please try again.');
+      throw error;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -73,13 +255,43 @@ export default function CheckoutPage() {
               <div className="mb-8">
                 <h2 className="text-xl font-bold text-[#543313] mb-4">Express checkout</h2>
                 <div className="grid grid-cols-3 gap-3">
-                  <button className="bg-[#c9b8d4] hover:bg-[#b9a8c4] border-2 border-[#543313] text-white py-4 rounded-lg font-bold text-lg transition-colors">
+                  <button
+                    onClick={() => {
+                      setExpressPayment('visa');
+                      setPaymentMethod('credit-card');
+                    }}
+                    className={`border border-[#543313] text-white py-4 rounded-lg font-bold text-lg transition-colors ${
+                      expressPayment === 'visa' 
+                        ? 'bg-[#b9a8c4]' 
+                        : 'bg-[#c9b8d4] hover:bg-[#b9a8c4]'
+                    }`}
+                  >
                     Visa
                   </button>
-                  <button className="bg-[#ffc439] hover:bg-[#ffb800] border-2 border-[#543313] text-[#0070ba] py-4 rounded-lg font-bold text-lg transition-colors">
+                  <button
+                    onClick={() => {
+                      setExpressPayment('paypal');
+                      setPaymentMethod('paypal');
+                    }}
+                    className={`border border-[#543313] text-[#0070ba] py-4 rounded-lg font-bold text-lg transition-colors ${
+                      expressPayment === 'paypal' 
+                        ? 'bg-[#ffb800]' 
+                        : 'bg-[#ffc439] hover:bg-[#ffb800]'
+                    }`}
+                  >
                     PayPal
                   </button>
-                  <button className="bg-black hover:bg-gray-800 border-2 border-[#543313] text-white py-4 rounded-lg font-bold text-lg transition-colors">
+                  <button
+                    onClick={() => {
+                      setExpressPayment('google');
+                      setPaymentMethod('credit-card');
+                    }}
+                    className={`border border-[#543313] text-white py-4 rounded-lg font-bold text-lg transition-colors ${
+                      expressPayment === 'google' 
+                        ? 'bg-gray-700' 
+                        : 'bg-black hover:bg-gray-800'
+                    }`}
+                  >
                     Google Pay
                   </button>
                 </div>
@@ -101,7 +313,7 @@ export default function CheckoutPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email or mobile phone number"
-                  className="w-full px-4 py-3 rounded-lg border-2 border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
+                  className="w-full px-4 py-3 rounded-lg border border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                 />
               </div>
 
@@ -112,7 +324,7 @@ export default function CheckoutPage() {
                   <select
                     value={country}
                     onChange={(e) => setCountry(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border-2 border-[#543313] bg-white text-[#543313] focus:outline-none focus:ring-2 focus:ring-[#d41872]"
+                    className="w-full px-4 py-3 rounded-lg border border-[#543313] bg-white text-[#543313] focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                   >
                     <option value="Germany">Germany</option>
                     <option value="United States">United States</option>
@@ -126,14 +338,14 @@ export default function CheckoutPage() {
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       placeholder="First name (optional)"
-                      className="px-4 py-3 rounded-lg border-2 border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
+                      className="px-4 py-3 rounded-lg border border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                     />
                     <input
                       type="text"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       placeholder="Last name"
-                      className="px-4 py-3 rounded-lg border-2 border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
+                      className="px-4 py-3 rounded-lg border border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                     />
                   </div>
 
@@ -143,7 +355,7 @@ export default function CheckoutPage() {
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       placeholder="Address"
-                      className="w-full px-4 py-3 pr-10 rounded-lg border-2 border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
+                      className="w-full px-4 py-3 pr-10 rounded-lg border border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                     />
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#543313]" />
                   </div>
@@ -153,7 +365,7 @@ export default function CheckoutPage() {
                     value={apartment}
                     onChange={(e) => setApartment(e.target.value)}
                     placeholder="Apartment, suite, etc. (optional)"
-                    className="w-full px-4 py-3 rounded-lg border-2 border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
+                    className="w-full px-4 py-3 rounded-lg border border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                   />
 
                   <div className="grid grid-cols-2 gap-4">
@@ -162,14 +374,14 @@ export default function CheckoutPage() {
                       value={postalCode}
                       onChange={(e) => setPostalCode(e.target.value)}
                       placeholder="Postal code"
-                      className="px-4 py-3 rounded-lg border-2 border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
+                      className="px-4 py-3 rounded-lg border border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                     />
                     <input
                       type="text"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       placeholder="City"
-                      className="px-4 py-3 rounded-lg border-2 border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
+                      className="px-4 py-3 rounded-lg border border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                     />
                   </div>
                 </div>
@@ -182,7 +394,7 @@ export default function CheckoutPage() {
                   type="text"
                   disabled
                   placeholder="Enter your shipping address to view available shipping methods."
-                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
                 />
               </div>
 
@@ -200,7 +412,10 @@ export default function CheckoutPage() {
                       name="payment"
                       value="credit-card"
                       checked={paymentMethod === 'credit-card'}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      onChange={(e) => {
+                        setPaymentMethod(e.target.value);
+                        setExpressPayment(null);
+                      }}
                       className="mt-1 w-5 h-5"
                     />
                     <label htmlFor="credit-card" className="flex-1 cursor-pointer">
@@ -219,20 +434,69 @@ export default function CheckoutPage() {
                   <div className="flex items-start gap-3">
                     <input
                       type="radio"
-                      id="paypal"
+                      id="payment-paypal"
                       name="payment"
                       value="paypal"
                       checked={paymentMethod === 'paypal'}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      onChange={(e) => {
+                        setPaymentMethod(e.target.value);
+                        setExpressPayment('paypal');
+                      }}
                       className="mt-1 w-5 h-5"
                     />
-                    <label htmlFor="paypal" className="flex-1 cursor-pointer">
+                    <label htmlFor="payment-paypal" className="flex-1 cursor-pointer">
                       <div className="flex items-center justify-between">
                         <span className="text-[#543313] font-semibold">PayPal</span>
                         <span className="text-xs text-[#0070ba]">PayPal</span>
                       </div>
                     </label>
                   </div>
+
+                  {/* PayPal Info Box */}
+                  {paymentMethod === 'paypal' && (
+                    <div className="ml-8 space-y-4 pt-4">
+                      <div 
+                        onClick={() => {
+                          // 滚动到 PayPal 按钮位置并触发点击
+                          setTimeout(() => {
+                            const paypalButton = document.querySelector('[data-paypal-button] button');
+                            if (paypalButton) {
+                              paypalButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              // 尝试触发 PayPal 按钮的点击
+                              setTimeout(() => {
+                                (paypalButton as HTMLElement).click();
+                              }, 500);
+                            }
+                          }, 100);
+                        }}
+                        className="bg-gray-100 border-2 border-[#0070ba] rounded-lg p-6 cursor-pointer hover:bg-gray-200 transition-colors"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <Image
+                              src="/paypal.png"
+                              alt="PayPal"
+                              width={32}
+                              height={32}
+                              className="object-contain"
+                            />
+                            <span className="text-[#0070ba] font-bold text-lg">PayPal</span>
+                          </div>
+                          <svg className="w-6 h-6 text-[#0070ba]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <svg className="w-6 h-6 text-[#543313] mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <p className="text-sm text-[#543313]">
+                            After clicking "Pay with PayPal", you will be redirected to PayPal to complete your purchase securely.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Credit Card Form */}
                   {paymentMethod === 'credit-card' && (
@@ -243,7 +507,7 @@ export default function CheckoutPage() {
                           value={cardNumber}
                           onChange={(e) => setCardNumber(e.target.value)}
                           placeholder="Card number"
-                          className="w-full px-4 py-3 pr-10 rounded-lg border-2 border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
+                          className="w-full px-4 py-3 pr-10 rounded-lg border border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                         />
                         <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#543313]" />
                       </div>
@@ -254,7 +518,7 @@ export default function CheckoutPage() {
                           value={expiryDate}
                           onChange={(e) => setExpiryDate(e.target.value)}
                           placeholder="Expiration date (MM / YY)"
-                          className="px-4 py-3 rounded-lg border-2 border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
+                          className="px-4 py-3 rounded-lg border border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                         />
                         <div className="relative">
                           <input
@@ -262,7 +526,7 @@ export default function CheckoutPage() {
                             value={securityCode}
                             onChange={(e) => setSecurityCode(e.target.value)}
                             placeholder="Security code"
-                            className="w-full px-4 py-3 pr-10 rounded-lg border-2 border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
+                            className="w-full px-4 py-3 pr-10 rounded-lg border border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                           />
                           <HelpCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#543313]" />
                         </div>
@@ -273,7 +537,7 @@ export default function CheckoutPage() {
                         value={nameOnCard}
                         onChange={(e) => setNameOnCard(e.target.value)}
                         placeholder="Name on card"
-                        className="w-full px-4 py-3 rounded-lg border-2 border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
+                        className="w-full px-4 py-3 rounded-lg border border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                       />
 
                       <div className="flex items-center gap-2">
@@ -311,22 +575,24 @@ export default function CheckoutPage() {
                         <input
                           type="text"
                           placeholder="First name"
-                          disabled
-                          className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
+                          value={rememberFirstName}
+                          onChange={(e) => setRememberFirstName(e.target.value)}
+                          className="w-full px-4 py-3 rounded-lg border border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                         />
                         <div className="relative">
                           <input
                             type="text"
                             placeholder="Mobile phone number"
-                            disabled
-                            className="w-full px-4 py-3 pl-12 rounded-lg border-2 border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
+                            value={rememberPhone}
+                            onChange={(e) => setRememberPhone(e.target.value)}
+                            className="w-full px-4 py-3 pl-12 rounded-lg border border-[#543313] bg-white text-[#543313] placeholder-[#543313]/50 focus:outline-none focus:ring-2 focus:ring-[#d41872]"
                           />
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+49</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#543313]">+49</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-[#543313]">
                           <Lock className="w-4 h-4" />
                           <span>Secure and encrypted</span>
-                          <span className="ml-auto text-xs bg-[#c9b8d4] px-2 py-1 rounded">shop</span>
+                          <span className="ml-auto text-xs bg-[#c9b8d4] px-2 py-1 rounded text-white">shop</span>
                         </div>
                       </div>
                     )}
@@ -336,9 +602,76 @@ export default function CheckoutPage() {
 
               {/* Pay Now Button */}
               <div className="mb-8">
-                <button className="w-full bg-[#0070ba] hover:bg-[#005a94] text-white py-4 rounded-lg font-bold text-lg transition-colors">
-                  Pay now
-                </button>
+                {isCartEmpty && (
+                  <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
+                    <p className="font-semibold mb-1">Cart is empty</p>
+                    <p>Your cart is empty, cannot checkout. Please add items to your cart.</p>
+                    <Link href="/" className="text-[#0070ba] underline mt-2 inline-block">
+                      Return to home page to continue shopping
+                    </Link>
+                  </div>
+                )}
+                
+                {paymentError && (
+                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                    {paymentError}
+                  </div>
+                )}
+                
+                {(expressPayment === 'paypal' || paymentMethod === 'paypal') ? (
+                  isCartEmpty ? (
+                    <div className="w-full bg-gray-300 text-gray-500 py-4 rounded-lg font-bold text-lg text-center cursor-not-allowed">
+                      Cart is empty, cannot pay！
+                    </div>
+                  ) : (
+                  <div data-paypal-button>
+                    {(() => {
+                      const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+                      // 在开发环境中显示调试信息
+                      if (process.env.NODE_ENV === 'development') {
+                        console.log('🔍 PayPal Client ID Debug:', {
+                          clientId: clientId ? `${clientId.substring(0, 10)}...${clientId.substring(clientId.length - 10)}` : 'undefined',
+                          length: clientId?.length || 0,
+                          isTest: clientId === 'test',
+                          isEmpty: !clientId || clientId.trim() === ''
+                        });
+                      }
+                      return null;
+                    })()}
+                    <PayPalScriptProvider
+                      options={{
+                        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'test',
+                        currency: 'USD',
+                        intent: 'capture',
+                        components: 'buttons',
+                        disableFunding: 'card,paylater,venmo',
+                      }}
+                      deferLoading={false}
+                    >
+                      <PayPalButtonWrapper
+                        createOrder={handlePayPalPayment}
+                        onApprove={handlePayPalApprove}
+                        onError={() => setPaymentError('PayPal payment failed. Please try again.')}
+                      />
+                    </PayPalScriptProvider>
+                  </div>
+                  )
+                ) : (
+                  isCartEmpty ? (
+                    <div className="w-full bg-gray-300 text-gray-500 py-4 rounded-lg font-bold text-lg text-center cursor-not-allowed">
+                      Cart is empty, cannot pay！
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleStripePayment}
+                      disabled={isProcessing || !clientSecret || isCartEmpty}
+                      className="w-full bg-[#0070ba] hover:bg-[#005a94] disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-4 rounded-lg font-bold text-lg transition-colors"
+                    >
+                      {isProcessing ? 'Processing...' : 'Pay now'}
+                    </button>
+                  )
+                )}
+                
                 <p className="text-xs text-gray-600 mt-3 text-center">
                   Your info will be saved to a Shop account. By continuing, you agree to{' '}
                   <Link href="#" className="underline">Shop's Terms of Service</Link>
@@ -370,7 +703,7 @@ export default function CheckoutPage() {
                 <div className="space-y-4 mb-6">
                   {items.filter(item => !item.isFreeStickers).map((item) => (
                     <div key={item.id} className="flex gap-3">
-                      <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-[#543313] flex-shrink-0">
+                      <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-[#543313] flex-shrink-0">
                         <Image
                           src={item.image}
                           alt={item.name}
@@ -399,7 +732,7 @@ export default function CheckoutPage() {
                       return (
                         <div key={stickerItem.id} className="bg-white border border-[#543313] rounded-lg p-4">
                           <div className="flex gap-3 items-start">
-                            <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-[#543313] flex-shrink-0 bg-[#add9a0] flex items-center justify-center">
+                            <div className="w-16 h-16 rounded-lg overflow-hidden border border-[#543313] flex-shrink-0 bg-[#add9a0] flex items-center justify-center">
                               <div className="text-center">
                                 <div className="text-xl mb-0.5">🎨</div>
                                 <p className="text-[6px] font-bold text-[#543313]">ANIMAL<br/>SOCKS</p>
@@ -454,7 +787,7 @@ export default function CheckoutPage() {
                   {!hasFreeStickers() && (
                     <div className="bg-white border border-[#543313] rounded-lg p-4">
                       <div className="flex gap-3 items-start">
-                        <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-[#543313] flex-shrink-0 bg-[#add9a0] flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden border border-[#543313] flex-shrink-0 bg-[#add9a0] flex items-center justify-center">
                           <div className="text-center">
                             <div className="text-xl mb-0.5">🎨</div>
                             <p className="text-[6px] font-bold text-[#543313]">ANIMAL<br/>SOCKS</p>

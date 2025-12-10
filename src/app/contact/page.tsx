@@ -11,6 +11,11 @@ export default function ContactPage() {
     email: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -19,10 +24,50 @@ export default function ContactPage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    // 这里可以添加实际的表单提交逻辑
+    setIsSubmitting(true);
+    setSubmitStatus({ type: null, message: '' });
+
+    try {
+      const response = await fetch('/api/send-contact-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubmitStatus({
+          type: 'success',
+          message: 'Thank you! Your message has been sent successfully.',
+        });
+        // 清空表单
+        setFormData({
+          firstName: '',
+          lastName: '',
+          phone: '',
+          email: '',
+          message: '',
+        });
+      } else {
+        setSubmitStatus({
+          type: 'error',
+          message: data.error || 'Failed to send message. Please try again.',
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSubmitStatus({
+        type: 'error',
+        message: 'An error occurred. Please try again later.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -34,6 +79,19 @@ export default function ContactPage() {
             <h1 className="text-4xl md:text-5xl font-bold text-[#543313] mb-8">
               Contact Form
             </h1>
+
+            {/* Success/Error Messages */}
+            {submitStatus.type && (
+              <div
+                className={`mb-6 p-4 rounded-lg ${
+                  submitStatus.type === 'success'
+                    ? 'bg-green-50 border-2 border-green-200 text-green-800'
+                    : 'bg-red-50 border-2 border-red-200 text-red-800'
+                }`}
+              >
+                <p className="font-semibold">{submitStatus.message}</p>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* First Name and Last Name */}
@@ -117,9 +175,10 @@ export default function ContactPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                className="bg-[#d41872] hover:bg-[#b01560] text-white px-10 py-4 rounded-full font-bold text-lg transition-colors"
+                disabled={isSubmitting}
+                className="bg-[#d41872] hover:bg-[#b01560] disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-10 py-4 rounded-full font-bold text-lg transition-colors"
               >
-                Submit form
+                {isSubmitting ? 'Sending...' : 'Submit form'}
               </button>
             </form>
           </div>
