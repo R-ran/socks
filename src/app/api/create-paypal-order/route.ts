@@ -43,10 +43,11 @@ export async function POST(request: NextRequest) {
       orderData,
       note: 'Please integrate with PayPal Orders API using your PayPal client ID and secret',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating PayPal order:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create PayPal order';
     return NextResponse.json(
-      { error: error.message || 'Failed to create PayPal order' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
