@@ -46,13 +46,6 @@ interface PayPalButtonInstance {
   [key: string]: unknown;
 }
 
-// 扩展 Window 接口
-declare global {
-  interface Window {
-    paypal?: PayPalSDK;
-  }
-}
-
 interface PayPalButtonWrapperProps {
   createOrder: (data: PayPalCreateOrderData, actions: PayPalActions) => Promise<string>;
   onApprove: (data: PayPalCreateOrderData, actions: PayPalActions) => Promise<void>;
@@ -92,7 +85,7 @@ export default function PayPalButtonWrapper({
         windowPaypal: typeof window !== 'undefined' ? {
           exists: !!window.paypal,
           type: typeof window.paypal,
-          keys: window.paypal ? Object.keys(window.paypal).slice(0, 10) : []
+          keys: window.paypal ? Object.keys(window.paypal as Record<string, unknown>).slice(0, 10) : []
         } : 'server-side'
       });
     }
@@ -119,8 +112,8 @@ export default function PayPalButtonWrapper({
       
       // 检查 window.paypal.Buttons 是否存在
       const checkPayPal = () => {
-        const globalWindow = window as Window & { paypal?: PayPalSDK };
-        const paypal = globalWindow.paypal;
+        // 使用类型断言访问 window.paypal，因为库已经声明了它的类型
+        const paypal = window.paypal as PayPalSDK | null | undefined;
         
         // 验证这是真正的 PayPal SDK 对象（不应该有 React 属性）
         if (paypal && typeof paypal === 'object') {
@@ -194,8 +187,7 @@ export default function PayPalButtonWrapper({
             clearInterval(interval);
           } else if (checkCount >= maxChecks) {
             clearInterval(interval);
-            const globalWindow = window as Window & { paypal?: PayPalSDK };
-            const paypal = globalWindow.paypal;
+            const paypal = window.paypal as PayPalSDK | null | undefined;
             const keys = paypal ? Object.keys(paypal) : [];
             const hasReactProps = keys.some(key => key.startsWith('_react') || key === 'checked' || key === '_valueTracker');
             
@@ -293,12 +285,15 @@ export default function PayPalButtonWrapper({
     );
   }
 
-  if (!isPayPalReady || typeof window === 'undefined' || !window.paypal || !window.paypal.Buttons) {
-    return (
-      <div className="w-full bg-yellow-50 border border-yellow-200 rounded-lg py-4 flex items-center justify-center">
-        <p className="text-yellow-700 text-sm">PayPal is initializing. Please wait...</p>
-      </div>
-    );
+  if (!isPayPalReady || typeof window === 'undefined' || !window.paypal) {
+    const paypal = window.paypal as PayPalSDK | null | undefined;
+    if (!paypal || !paypal.Buttons) {
+      return (
+        <div className="w-full bg-yellow-50 border border-yellow-200 rounded-lg py-4 flex items-center justify-center">
+          <p className="text-yellow-700 text-sm">PayPal is initializing. Please wait...</p>
+        </div>
+      );
+    }
   }
 
   return (
