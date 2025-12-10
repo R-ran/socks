@@ -4,18 +4,6 @@ import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
 import { useEffect, useState } from 'react';
 
 // PayPal 相关类型定义
-interface PayPalCreateOrderData {
-  orderID?: string;
-  [key: string]: unknown;
-}
-
-interface PayPalActions {
-  order: {
-    create: (orderData: { purchase_units: Array<{ amount: { currency_code: string; value: string } }> }) => Promise<string>;
-    capture: () => Promise<PayPalOrderCaptureResponse>;
-  };
-}
-
 interface PayPalOrderCaptureResponse {
   id: string;
   status: string;
@@ -28,9 +16,9 @@ interface PayPalSDK {
 }
 
 interface PayPalButtonOptions {
-  createOrder?: (data: PayPalCreateOrderData, actions: PayPalActions) => Promise<string>;
-  onApprove?: (data: PayPalCreateOrderData, actions: PayPalActions) => Promise<void>;
-  onError?: (error: Error) => void;
+  createOrder?: (data: unknown, actions: unknown) => Promise<string>;
+  onApprove?: (data: unknown, actions: unknown) => Promise<void>;
+  onError?: (error: unknown) => void;
   style?: {
     layout?: string;
     color?: string;
@@ -47,9 +35,9 @@ interface PayPalButtonInstance {
 }
 
 interface PayPalButtonWrapperProps {
-  createOrder: (data: PayPalCreateOrderData, actions: PayPalActions) => Promise<string>;
-  onApprove: (data: PayPalCreateOrderData, actions: PayPalActions) => Promise<void>;
-  onError: (error: Error) => void;
+  createOrder: (data: unknown, actions: unknown) => Promise<string>;
+  onApprove: (data: unknown, actions: unknown) => Promise<void>;
+  onError: (error: unknown) => void;
 }
 
 export default function PayPalButtonWrapper({
@@ -84,7 +72,7 @@ export default function PayPalButtonWrapper({
         windowPaypal: typeof window !== 'undefined' ? {
           exists: !!window.paypal,
           type: typeof window.paypal,
-          keys: window.paypal ? Object.keys(window.paypal as Record<string, unknown>).slice(0, 10) : []
+          keys: window.paypal ? Object.keys(window.paypal as unknown as Record<string, unknown>).slice(0, 10) : []
         } : 'server-side'
       });
     }
