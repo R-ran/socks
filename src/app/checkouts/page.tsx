@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { Lock, Search, HelpCircle } from 'lucide-react';
 import CartSidebar from '@/components/CartSidebar';
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe, Stripe } from '@stripe/stripe-js';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import dynamic from 'next/dynamic';
 
@@ -16,8 +16,27 @@ const PayPalButtonWrapper = dynamic(
   { ssr: false }
 );
 
+// PayPal types
+interface PayPalCreateOrderData {
+  orderID?: string;
+  [key: string]: unknown;
+}
+
+interface PayPalActions {
+  order: {
+    create: (orderData: { purchase_units: Array<{ amount: { currency_code: string; value: string } }> }) => Promise<string>;
+    capture: () => Promise<PayPalOrderCaptureResponse>;
+  };
+}
+
+interface PayPalOrderCaptureResponse {
+  id: string;
+  status: string;
+  [key: string]: unknown;
+}
+
 // Initialize Stripe - will be loaded when component mounts
-let stripePromise: Promise<any> | null = null;
+let stripePromise: Promise<Stripe | null> | null = null;
 const getStripe = () => {
   if (!stripePromise) {
     stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
@@ -68,13 +87,6 @@ export default function CheckoutPage() {
   // Check if cart is empty
   const isCartEmpty = items.length === 0;
 
-  // Create payment intent when component mounts or total changes
-  useEffect(() => {
-    if (items.length > 0 && total > 0) {
-      createPaymentIntent();
-    }
-  }, [items, total]);
-
   const createPaymentIntent = async () => {
     try {
       const response = await fetch('/api/create-payment-intent', {
@@ -104,6 +116,14 @@ export default function CheckoutPage() {
       console.error('Error creating payment intent:', error);
     }
   };
+
+  // Create payment intent when component mounts or total changes
+  useEffect(() => {
+    if (items.length > 0 && total > 0) {
+      createPaymentIntent();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, total]);
 
   const handleStripePayment = async () => {
     if (!clientSecret) {
@@ -139,14 +159,15 @@ export default function CheckoutPage() {
       } else {
         setPaymentError('Payment failed. Please try again.');
       }
-    } catch (error: any) {
-      setPaymentError(error.message || 'Payment failed. Please try again.');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Payment failed. Please try again.';
+      setPaymentError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handlePayPalPayment = async (data: any, actions: any) => {
+  const handlePayPalPayment = async (data: PayPalCreateOrderData, actions: PayPalActions) => {
     try {
       // 重新计算总价，确保使用最新的值
       const currentTotal = getSubtotal();
@@ -193,15 +214,15 @@ export default function CheckoutPage() {
       }
       
       return order;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('PayPal order creation failed:', error);
-      const errorMsg = error.message || 'Failed to create PayPal order. Please try again.';
+      const errorMsg = error instanceof Error ? error.message : 'Failed to create PayPal order. Please try again.';
       setPaymentError(errorMsg);
       throw error;
     }
   };
 
-  const handlePayPalApprove = async (data: any, actions: any) => {
+  const handlePayPalApprove = async (data: PayPalCreateOrderData, actions: PayPalActions) => {
     try {
       const details = await actions.order.capture();
       router.push(`/order-success?amount=${total}&paymentMethod=paypal`);
