@@ -58,7 +58,7 @@ export default function PayPalButtonWrapper({
   onError,
 }: PayPalButtonWrapperProps) {
   const [scriptState, dispatch] = usePayPalScriptReducer();
-  const { isResolved, isPending, isRejected, loadingStatus } = scriptState;
+  const { isResolved, isPending, isRejected } = scriptState;
   const [isPayPalReady, setIsPayPalReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -80,7 +80,6 @@ export default function PayPalButtonWrapper({
           isPending,
           isResolved,
           isRejected,
-          loadingStatus,
         },
         windowPaypal: typeof window !== 'undefined' ? {
           exists: !!window.paypal,
@@ -97,9 +96,9 @@ export default function PayPalButtonWrapper({
 
     // 监听 PayPal SDK 加载状态
     if (isRejected) {
-      console.error('❌ PayPal SDK rejected:', loadingStatus);
+      console.error('❌ PayPal SDK rejected');
       setErrorMessage(
-        `PayPal SDK failed to load. Status: ${loadingStatus || 'unknown'}. ` +
+        `PayPal SDK failed to load. ` +
         `Please check your Client ID is correct and your internet connection.`
       );
       return;
@@ -203,7 +202,6 @@ export default function PayPalButtonWrapper({
               paypalType: paypal ? typeof paypal : 'undefined',
               scriptInDOM: !!paypalScript,
               scriptSrc: paypalScript ? (paypalScript as HTMLScriptElement).src : null,
-              loadingStatus
             };
             console.error('❌ PayPal SDK timeout:', paypalInfo);
             
@@ -222,7 +220,6 @@ export default function PayPalButtonWrapper({
             } else if (!paypal) {
               setErrorMessage(
                 `PayPal SDK script loaded but window.paypal is undefined. ` +
-                `Script status: ${loadingStatus || 'unknown'}. ` +
                 `This might indicate an issue with the Client ID or PayPal server. ` +
                 `Please verify your Client ID in PayPal Developer Dashboard.`
               );
@@ -245,7 +242,7 @@ export default function PayPalButtonWrapper({
         clearTimeout(initialDelay);
       };
     }
-  }, [isResolved, isRejected, isPending, loadingStatus]);
+  }, [isResolved, isRejected, isPending]);
 
   if (errorMessage) {
     return (
