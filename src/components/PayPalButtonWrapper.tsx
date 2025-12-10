@@ -3,19 +3,60 @@
 import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
 import { useEffect, useState } from 'react';
 
+// PayPal 相关类型定义
+interface PayPalCreateOrderData {
+  orderID?: string;
+  [key: string]: unknown;
+}
+
+interface PayPalActions {
+  order: {
+    create: (orderData: { purchase_units: Array<{ amount: { currency_code: string; value: string } }> }) => Promise<string>;
+    capture: () => Promise<PayPalOrderCaptureResponse>;
+  };
+}
+
+interface PayPalOrderCaptureResponse {
+  id: string;
+  status: string;
+  [key: string]: unknown;
+}
+
+interface PayPalSDK {
+  Buttons?: (options: PayPalButtonOptions) => PayPalButtonInstance;
+  [key: string]: unknown;
+}
+
+interface PayPalButtonOptions {
+  createOrder?: (data: PayPalCreateOrderData, actions: PayPalActions) => Promise<string>;
+  onApprove?: (data: PayPalCreateOrderData, actions: PayPalActions) => Promise<void>;
+  onError?: (error: Error) => void;
+  style?: {
+    layout?: string;
+    color?: string;
+    shape?: string;
+    label?: string;
+  };
+  fundingSource?: string;
+  [key: string]: unknown;
+}
+
+interface PayPalButtonInstance {
+  render: (container: HTMLElement) => void;
+  [key: string]: unknown;
+}
+
 // 扩展 Window 接口
 declare global {
   interface Window {
-    paypal?: {
-      Buttons?: any;
-    };
+    paypal?: PayPalSDK;
   }
 }
 
 interface PayPalButtonWrapperProps {
-  createOrder: (data: any, actions: any) => Promise<string>;
-  onApprove: (data: any, actions: any) => Promise<void>;
-  onError: (error: any) => void;
+  createOrder: (data: PayPalCreateOrderData, actions: PayPalActions) => Promise<string>;
+  onApprove: (data: PayPalCreateOrderData, actions: PayPalActions) => Promise<void>;
+  onError: (error: Error) => void;
 }
 
 export default function PayPalButtonWrapper({
@@ -78,7 +119,7 @@ export default function PayPalButtonWrapper({
       
       // 检查 window.paypal.Buttons 是否存在
       const checkPayPal = () => {
-        const globalWindow = window as Window & { paypal?: any };
+        const globalWindow = window as Window & { paypal?: PayPalSDK };
         const paypal = globalWindow.paypal;
         
         // 验证这是真正的 PayPal SDK 对象（不应该有 React 属性）
@@ -153,7 +194,7 @@ export default function PayPalButtonWrapper({
             clearInterval(interval);
           } else if (checkCount >= maxChecks) {
             clearInterval(interval);
-            const globalWindow = window as Window & { paypal?: any };
+            const globalWindow = window as Window & { paypal?: PayPalSDK };
             const paypal = globalWindow.paypal;
             const keys = paypal ? Object.keys(paypal) : [];
             const hasReactProps = keys.some(key => key.startsWith('_react') || key === 'checked' || key === '_valueTracker');
