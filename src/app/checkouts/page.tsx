@@ -222,12 +222,11 @@ export default function CheckoutPage() {
     }
   };
 
-  const handlePayPalApprove = async (data: PayPalCreateOrderData, actions: PayPalActions) => {
+  const handlePayPalApprove = async (data: PayPalCreateOrderData, actions: PayPalActions): Promise<void> => {
     try {
-      const details = await actions.order.capture();
+      await actions.order.capture();
       router.push(`/order-success?amount=${total}&paymentMethod=paypal`);
-      return details;
-    } catch (error) {
+    } catch (error: unknown) {
       setPaymentError('PayPal payment failed. Please try again.');
       throw error;
     }
@@ -672,7 +671,10 @@ export default function CheckoutPage() {
                       <PayPalButtonWrapper
                         createOrder={handlePayPalPayment}
                         onApprove={handlePayPalApprove}
-                        onError={() => setPaymentError('PayPal payment failed. Please try again.')}
+                        onError={(error: Error) => {
+                          console.error('PayPal error:', error);
+                          setPaymentError('PayPal payment failed. Please try again.');
+                        }}
                       />
                     </PayPalScriptProvider>
                   </div>
