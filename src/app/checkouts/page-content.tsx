@@ -236,6 +236,289 @@ export default function CheckoutPageContent() {
     }
   };
 
+  const handleApplePay = async () => {
+    if (isCartEmpty) {
+      setPaymentError('Your cart is empty. Please add items before checkout.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setPaymentError(null);
+
+    try {
+      // 检查是否支持 Apple Pay
+      if (typeof window === 'undefined' || !(window as any).ApplePaySession) {
+        setPaymentError('Apple Pay is not available on this device.');
+        setIsProcessing(false);
+        return;
+      }
+
+      const ApplePaySession = (window as any).ApplePaySession;
+      
+      if (!ApplePaySession.canMakePayments()) {
+        setPaymentError('Apple Pay is not available on this device.');
+        setIsProcessing(false);
+        return;
+      }
+
+      // 准备支付数据
+      const paymentData = {
+        amount: total,
+        currency: 'USD',
+        items: items.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        shippingAddress: {
+          firstName,
+          lastName,
+          address,
+          city,
+          postalCode,
+          country,
+        },
+      };
+
+      // 调用后端 API
+      const response = await fetch('/api/apple-pay', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paymentData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to initiate Apple Pay');
+      }
+
+      // 创建 Apple Pay 会话
+      const request = {
+        countryCode: 'US',
+        currencyCode: 'USD',
+        supportedNetworks: ['visa', 'masterCard', 'amex', 'discover'],
+        merchantCapabilities: ['supports3DS'],
+        total: {
+          label: 'Animalsox',
+          amount: total.toFixed(2),
+        },
+        lineItems: items.map(item => ({
+          label: item.name,
+          amount: (item.price * item.quantity).toFixed(2),
+        })),
+      };
+
+      const session = new ApplePaySession(3, request);
+
+      session.onvalidatemerchant = async (event: any) => {
+        try {
+          // 在实际实现中，这里应该调用后端验证商户
+          // 现在直接使用 event.validationURL
+          session.completeMerchantValidation({
+            merchantSession: event.validationURL,
+          });
+        } catch (error) {
+          session.abort();
+          setPaymentError('Failed to validate merchant.');
+          setIsProcessing(false);
+        }
+      };
+
+      session.onpaymentauthorized = async (event: any) => {
+        try {
+          // 处理支付授权
+          // 在实际实现中，这里应该调用后端处理支付
+          session.completePayment(ApplePaySession.STATUS_SUCCESS);
+          router.push(`/order-success?amount=${total}&paymentMethod=applepay`);
+        } catch (error) {
+          session.completePayment(ApplePaySession.STATUS_FAILURE);
+          setPaymentError('Payment authorization failed.');
+          setIsProcessing(false);
+        }
+      };
+
+      session.oncancel = () => {
+        setIsProcessing(false);
+      };
+
+      session.begin();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Apple Pay payment failed. Please try again.';
+      setPaymentError(errorMessage);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleLianLianPay = async () => {
+    if (isCartEmpty) {
+      setPaymentError('Your cart is empty. Please add items before checkout.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setPaymentError(null);
+
+    try {
+      // 准备支付数据
+      const paymentData = {
+        amount: total,
+        currency: 'USD',
+        items: items.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        returnUrl: `${window.location.origin}/order-success?amount=${total}&paymentMethod=lianlian`,
+        notifyUrl: `${window.location.origin}/api/lianlian-notify`,
+      };
+
+      // 调用后端 API
+      const response = await fetch('/api/lianlian-pay', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paymentData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // 显示更详细的错误信息
+        const errorMsg = data.error || data.errorEn || 'Failed to initiate LianLian Pay';
+        throw new Error(errorMsg);
+      }
+
+      // 如果是配置错误
+      if (data.configError) {
+        const errorMsg = data.error || data.errorEn || 'LianLian Pay is not configured properly.';
+        throw new Error(errorMsg);
+      }
+
+      // 检查是否有支付 URL
+      if (data.paymentUrl) {
+        // 如果是模拟支付，直接跳转到成功页面
+        if (data.isMock) {
+          router.push(data.paymentUrl);
+          return;
+        }
+        // 真实支付，跳转到支付页面
+        window.location.href = data.paymentUrl;
+      } else {
+        // 如果返回了错误或提示信息
+        const errorMsg = data.error || data.errorEn || data.note || 'Payment URL not received. Please configure LianLian Pay credentials.';
+        throw new Error(errorMsg);
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'LianLian Pay payment failed. Please try again.';
+      setPaymentError(errorMessage);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleVisaPayment = async () => {
+    if (isCartEmpty) {
+      setPaymentError('Your cart is empty. Please add items before checkout.');
+      return;
+    }
+
+    if (!clientSecret) {
+      setPaymentError('Payment system not ready. Please try again.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setPaymentError(null);
+    setExpressPayment('visa');
+    setPaymentMethod('credit-card');
+
+    try {
+      const stripe = await getStripe();
+      if (!stripe) {
+        throw new Error('Stripe not loaded');
+      }
+
+      // 检查是否已填写信用卡信息
+      const hasCardInfo = cardNumber && expiryDate && securityCode;
+      
+      if (!hasCardInfo) {
+        // 如果没有填写信用卡信息，滚动到信用卡表单
+        const cardForm = document.getElementById('credit-card-form');
+        if (cardForm) {
+          cardForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setPaymentError('Please fill in your card details below to complete the payment.');
+        } else {
+          setPaymentError('Please fill in your card details to complete the payment.');
+        }
+        setIsProcessing(false);
+        return;
+      }
+
+      // 验证并格式化信用卡信息
+      const cardNumberClean = cardNumber.replace(/\s/g, '');
+      const expiryParts = expiryDate.split('/');
+      const expMonth = parseInt(expiryParts[0]?.trim() || '12');
+      const expYear = parseInt('20' + (expiryParts[1]?.trim() || '25'));
+
+      if (cardNumberClean.length < 13 || cardNumberClean.length > 19) {
+        throw new Error('Invalid card number');
+      }
+
+      if (expMonth < 1 || expMonth > 12) {
+        throw new Error('Invalid expiration month');
+      }
+
+      // 获取 Payment Intent ID
+      const paymentIntentId = clientSecret.split('_secret_')[0];
+
+      // 调用后端 API 处理支付
+      const response = await fetch('/api/process-visa-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentIntentId,
+          cardNumber: cardNumberClean,
+          expMonth,
+          expYear,
+          cvc: securityCode,
+          name: nameOnCard || `${firstName} ${lastName}`.trim() || 'Customer',
+          email: email || undefined,
+          address: {
+            line1: address || undefined,
+            line2: apartment || undefined,
+            city: city || undefined,
+            postal_code: postalCode || undefined,
+            country: country === 'United States' ? 'US' : 
+                    country === 'United Kingdom' ? 'GB' : 
+                    country === 'Canada' ? 'CA' : 'DE',
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Payment failed');
+      }
+
+      // 支付成功
+      if (data.status === 'succeeded') {
+        router.push(`/order-success?amount=${total}&paymentMethod=visa`);
+      } else {
+        throw new Error('Payment was not completed');
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Visa payment failed. Please try again.';
+      setPaymentError(errorMessage);
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Top Header Section */}
@@ -280,11 +563,9 @@ export default function CheckoutPageContent() {
                 <h2 className="text-xl font-bold text-[#543313] mb-4">Express checkout</h2>
                 <div className="grid grid-cols-3 gap-3">
                   <button
-                    onClick={() => {
-                      setExpressPayment('visa');
-                      setPaymentMethod('credit-card');
-                    }}
-                    className={`border border-[#543313] text-white py-4 rounded-lg font-bold text-lg transition-colors ${
+                    onClick={handleVisaPayment}
+                    disabled={isProcessing}
+                    className={`border border-[#543313] text-white py-4 rounded-lg font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       expressPayment === 'visa' 
                         ? 'bg-[#b9a8c4]' 
                         : 'bg-[#c9b8d4] hover:bg-[#b9a8c4]'
@@ -317,6 +598,42 @@ export default function CheckoutPageContent() {
                     }`}
                   >
                     Google Pay
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <button
+                    onClick={handleApplePay}
+                    disabled={isProcessing}
+                    className={`border border-[#543313] bg-white rounded-lg flex items-center justify-center overflow-hidden px-2 py-4 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      expressPayment === 'apple' 
+                        ? 'ring-2 ring-[#d41872] border-[#d41872]' 
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <Image
+                      src="/apple.png"
+                      alt="Apple Pay"
+                      width={50}
+                      height={36}
+                      className="object-contain scale-110"
+                    />
+                  </button>
+                  <button
+                    onClick={handleLianLianPay}
+                    disabled={isProcessing}
+                    className={`border border-[#543313] bg-white rounded-lg flex items-center justify-center overflow-hidden px-2 py-4 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      expressPayment === 'lianlian' 
+                        ? 'ring-2 ring-[#d41872] border-[#d41872]' 
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <Image
+                      src="/lianlian.avif"
+                      alt="LianLian Global"
+                      width={100}
+                      height={42}
+                      className="object-contain scale-150"
+                    />
                   </button>
                 </div>
                 <div className="text-center my-4">
@@ -524,7 +841,7 @@ export default function CheckoutPageContent() {
 
                   {/* Credit Card Form */}
                   {paymentMethod === 'credit-card' && (
-                    <div className="ml-8 space-y-4 pt-4">
+                    <div id="credit-card-form" className="ml-8 space-y-4 pt-4">
                       <div className="relative">
                         <input
                           type="text"
@@ -706,6 +1023,8 @@ export default function CheckoutPageContent() {
                   <Link href="/policies/privacy-policy" className="underline">Privacy Policy</Link>.
                 </p>
               </div>
+
+              
 
               {/* Footer Links */}
               <div className="flex gap-4 text-sm text-[#543313] pb-8">

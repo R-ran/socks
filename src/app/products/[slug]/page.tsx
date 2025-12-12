@@ -902,11 +902,11 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 </div>
                 <div className="w-14 h-7 bg-white rounded border flex items-center justify-center overflow-hidden px-1.5">
                   <Image
-                    src="/yinlian.png"
-                    alt="银联 Pay"
+                    src="/lianlian.avif"
+                    alt="lianlianpay"
                     width={50}
                     height={20}
-                    className="object-contain"
+                    className="object-contain scale-150"
                   />
                 </div>
               </div>

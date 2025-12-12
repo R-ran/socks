@@ -70,11 +70,11 @@ export default function Footer() {
               </div>
               <div className="w-20 h-10 bg-white rounded border flex items-center justify-center overflow-hidden px-2">
                 <Image
-                  src="/yinlian.png"
-                  alt="银联 Pay"
-                  width={80}
-                  height={30}
-                  className="object-contain"
+                  src="/lianlian.avif"
+                  alt="lianlianpay"
+                  width={120}
+                  height={50}
+                  className="object-contain scale-150"
                 />
               </div>
             </div>
