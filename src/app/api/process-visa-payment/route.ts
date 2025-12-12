@@ -76,13 +76,13 @@ export async function POST(request: NextRequest) {
       let errorMessage = error.message;
       
       // 提供更友好的错误信息
-      if (error.type === 'card_error') {
+      if (error instanceof Stripe.errors.StripeCardError) {
         errorMessage = `Card error: ${error.message}`;
-      } else if (error.type === 'invalid_request_error') {
+      } else if (error instanceof Stripe.errors.StripeInvalidRequestError) {
         errorMessage = `Invalid request: ${error.message}. Please check your card details.`;
-      } else if (error.type === 'api_error') {
+      } else if (error instanceof Stripe.errors.StripeAPIError) {
         errorMessage = `Payment service error: ${error.message}. Please try again.`;
-      } else if (error.type === 'authentication_error') {
+      } else if (error instanceof Stripe.errors.StripeAuthenticationError) {
         errorMessage = `Authentication error: Please check your Stripe API keys.`;
       }
       
