@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         { 
           error: errorMessage,
           type: error.type,
-          code: (error as any).code || undefined,
+          code: 'code' in error ? (error.code as string) : undefined,
         },
         { status: 400 }
       );

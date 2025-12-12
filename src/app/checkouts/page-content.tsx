@@ -247,13 +247,13 @@ export default function CheckoutPageContent() {
 
     try {
       // 检查是否支持 Apple Pay
-      if (typeof window === 'undefined' || !(window as any).ApplePaySession) {
+      if (typeof window === 'undefined' || !window.ApplePaySession) {
         setPaymentError('Apple Pay is not available on this device.');
         setIsProcessing(false);
         return;
       }
 
-      const ApplePaySession = (window as any).ApplePaySession;
+      const ApplePaySession = window.ApplePaySession;
       
       if (!ApplePaySession.canMakePayments()) {
         setPaymentError('Apple Pay is not available on this device.');
@@ -313,7 +313,7 @@ export default function CheckoutPageContent() {
 
       const session = new ApplePaySession(3, request);
 
-      session.onvalidatemerchant = async (event: any) => {
+      session.onvalidatemerchant = async (event: { validationURL: string }) => {
         try {
           // 在实际实现中，这里应该调用后端验证商户
           // 现在直接使用 event.validationURL
@@ -327,7 +327,7 @@ export default function CheckoutPageContent() {
         }
       };
 
-      session.onpaymentauthorized = async (event: any) => {
+      session.onpaymentauthorized = async (event: ApplePayPaymentAuthorizedEvent) => {
         try {
           // 处理支付授权
           // 在实际实现中，这里应该调用后端处理支付
