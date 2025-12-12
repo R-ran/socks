@@ -158,9 +158,9 @@ NEXT_PUBLIC_BASE_URL=https://yourdomain.com
 ## 测试环境配置示例
 
 ```env
-# Stripe 测试密钥
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51AbCdEfGhIjKlMnOpQrStUvWxYz1234567890
-STRIPE_SECRET_KEY=sk_test_51AbCdEfGhIjKlMnOpQrStUvWxYz1234567890
+# Stripe 测试密钥（从 https://dashboard.stripe.com/test/apikeys 获取）
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_YOUR_PUBLISHABLE_KEY_HERE
+STRIPE_SECRET_KEY=sk_test_YOUR_SECRET_KEY_HERE
 
 # Apple Pay（使用默认值进行测试）
 APPLE_PAY_MERCHANT_ID=merchant.com.animalsox
@@ -177,9 +177,9 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000
 ## 生产环境配置示例
 
 ```env
-# Stripe 生产密钥
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51AbCdEfGhIjKlMnOpQrStUvWxYz1234567890
-STRIPE_SECRET_KEY=sk_live_51AbCdEfGhIjKlMnOpQrStUvWxYz1234567890
+# Stripe 生产密钥（从 https://dashboard.stripe.com/apikeys 获取）
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_YOUR_PUBLISHABLE_KEY_HERE
+STRIPE_SECRET_KEY=sk_live_YOUR_SECRET_KEY_HERE
 
 # Apple Pay（使用真实的 Merchant ID）
 APPLE_PAY_MERCHANT_ID=merchant.com.animalsox
